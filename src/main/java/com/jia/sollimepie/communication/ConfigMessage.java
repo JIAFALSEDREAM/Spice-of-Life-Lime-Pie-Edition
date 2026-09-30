@@ -23,6 +23,8 @@ public record ConfigMessage(CompoundTag tag) implements CustomPacketPayload {
     public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
     public static void handle(ConfigMessage message, IPayloadContext context) {
+        // The integrated server shares these static values; a delayed local packet must not overwrite them.
+        if (context.connection().isMemoryConnection()) return;
         context.enqueueWork(() -> ConfigHandler.deserializeConfig(message.tag));
     }
 }

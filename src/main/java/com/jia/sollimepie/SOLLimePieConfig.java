@@ -1,12 +1,12 @@
 package com.jia.sollimepie;
 
-import com.jia.sollimepie.tracking.CapabilityHandler;
-import com.jia.sollimepie.tracking.benefits.BenefitsHandler;
 import com.google.common.collect.Lists;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.item.Item;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.ModConfigSpec.*;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -54,21 +54,50 @@ public final class SOLLimePieConfig
 
 	@SubscribeEvent
 	public static void onConfigReload(ModConfigEvent.Reloading event) {
+		if (event.getConfig().getSpec() != SERVER_SPEC) {
+			return;
+		}
 		MinecraftServer currentServer = ServerLifecycleHooks.getCurrentServer();
 		if (currentServer == null) {
 		    return;
 		}
 
-		PlayerList players = currentServer.getPlayerList();
-		for (Player player : players.getPlayers()) {
-			BenefitsHandler.removeAllBenefits(player);
-			BenefitsHandler.updatePlayer(player);
-			CapabilityHandler.syncFoodList(player);
-		}
+		currentServer.execute(() -> ConfigHandler.reloadServerConfig(currentServer.getPlayerList().getPlayers()));
 	}
 
 	public static List<String> getBlacklist() {
 		return new ArrayList<>(SERVER.blacklist.get());
+	}
+
+	/** Rules used by client diversity calculations; NeoForge only syncs SERVER config during login. */
+	public static CompoundTag serializeCalculationRules() {
+		CompoundTag tag = new CompoundTag();
+		tag.putInt("size", size());
+		tag.putInt("startDecay", startDecay());
+		tag.putInt("endDecay", endDecay());
+		tag.putInt("minimumFoods", minFoodsToActivate());
+		tag.putDouble("minContribution", minContribution());
+		tag.putDouble("defaultContribution", defaultContribution());
+		tag.putBoolean("forbiddenCount", shouldForbiddenCount());
+		ListTag whitelist = new ListTag(), blacklist = new ListTag();
+		getWhitelist().forEach(value -> whitelist.add(StringTag.valueOf(value)));
+		getBlacklist().forEach(value -> blacklist.add(StringTag.valueOf(value)));
+		tag.put("whitelist", whitelist);
+		tag.put("blacklist", blacklist);
+		return tag;
+	}
+
+	/** Apply only to the client loaded config, without saving or firing a config reload event. */
+	public static void applyCalculationRules(CompoundTag tag) {
+		SERVER.queueSize.set(tag.getInt("size"));
+		SERVER.startDecay.set(tag.getInt("startDecay"));
+		SERVER.endDecay.set(tag.getInt("endDecay"));
+		SERVER.minFoodsToActivate.set(tag.getInt("minimumFoods"));
+		SERVER.minContribution.set(tag.getDouble("minContribution"));
+		SERVER.defaultContribution.set(tag.getDouble("defaultContribution"));
+		SERVER.shouldForbiddenCount.set(tag.getBoolean("forbiddenCount"));
+		SERVER.whitelist.set(tag.getList("whitelist", Tag.TAG_STRING).stream().map(Tag::getAsString).toList());
+		SERVER.blacklist.set(tag.getList("blacklist", Tag.TAG_STRING).stream().map(Tag::getAsString).toList());
 	}
 
 	public static List<String> getWhitelist() {

@@ -2,6 +2,9 @@ package com.jia.sollimepie;
 
 import com.jia.sollimepie.communication.ConfigMessage;
 import com.jia.sollimepie.tracking.FoodInstance;
+import com.jia.sollimepie.tracking.CapabilityHandler;
+import com.jia.sollimepie.tracking.benefits.BenefitsHandler;
+import com.jia.sollimepie.tracking.benefits.EffectBenefitsCapability;
 import com.jia.sollimepie.tracking.benefits.Benefit;
 import com.jia.sollimepie.tracking.benefits.BenefitList;
 import com.jia.sollimepie.utils.BenefitsParser;
@@ -33,6 +36,7 @@ public class ConfigHandler {
     public final static String FOOD_KEY = "food";
     public final static String COMPLEXITY_VALUE_KEY = "complexity";
     public final static String ENTRY_KEY = "entries";
+    private static final String CALCULATION_RULES_KEY = "calculation_rules";
 
     public static boolean isFirstAid = false;
 
@@ -72,6 +76,7 @@ public class ConfigHandler {
         tag.put(COMPLEXITY_MAP_KEY, serializeComplexityMap());
         tag.put(THRESHOLDS_KEY, serializeThresholds());
         tag.put(BENEFITS_KEY, serializeBenefitsList());
+        tag.put(CALCULATION_RULES_KEY, SOLLimePieConfig.serializeCalculationRules());
         return tag;
     }
 
@@ -79,6 +84,10 @@ public class ConfigHandler {
         deserializeComplexityMap(tag.getCompound(COMPLEXITY_MAP_KEY));
         deserializeThresholds(tag.getList(THRESHOLDS_KEY, Tag.TAG_DOUBLE));
         deserializeBenefitsList(tag.getCompound(BENEFITS_KEY));
+        // Older servers omit this optional NBT field.
+        if (tag.contains(CALCULATION_RULES_KEY, Tag.TAG_COMPOUND)) {
+            SOLLimePieConfig.applyCalculationRules(tag.getCompound(CALCULATION_RULES_KEY));
+        }
     }
 
     public static void deserializeBenefitsList(CompoundTag tag) {
@@ -109,12 +118,41 @@ public class ConfigHandler {
 
     @SubscribeEvent
     public static void onServerStart(ServerStartingEvent event) {
+        loadServerConfig();
+        isFirstAid = ModList.get().isLoaded("firstaid");
+    }
+
+    private static void loadServerConfig() {
         complexityMap = ComplexityParser.parse(SOLLimePieConfig.getComplexityUnparsed());
         thresholds = SOLLimePieConfig.getThresholds();
         List<List<Benefit>> benefits = BenefitsParser.parse(SOLLimePieConfig.getBenefitsUnparsed());
         benefitsList = new BenefitList(benefits);
+    }
 
-        isFirstAid = ModList.get().isLoaded("firstaid");
+    // Called on the server thread. Parse before touching active player benefits.
+    static void reloadServerConfig(List<? extends Player> players) {
+        Map<FoodInstance, Double> newComplexity = ComplexityParser.parse(SOLLimePieConfig.getComplexityUnparsed());
+        List<Double> newThresholds = SOLLimePieConfig.getThresholds();
+        BenefitList newBenefits = new BenefitList(BenefitsParser.parse(SOLLimePieConfig.getBenefitsUnparsed()));
+        float[] health = new float[players.size()];
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            health[i] = player.getHealth();
+            BenefitsHandler.removeAllBenefits(player);
+            EffectBenefitsCapability.get(player).clear();
+        }
+        complexityMap = newComplexity;
+        thresholds = newThresholds;
+        benefitsList = newBenefits;
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            BenefitsHandler.updatePlayer(player);
+            if (!isFirstAid) {
+                player.setHealth(Math.min(health[i], player.getMaxHealth()));
+            }
+            syncConfig(player);
+            CapabilityHandler.syncFoodList(player);
+        }
     }
 
     @SubscribeEvent
@@ -127,10 +165,8 @@ public class ConfigHandler {
     }
 
     public static void syncConfig(Player player) {
-        if (player.level().isClientSide) {
-            return;
+        if (player instanceof ServerPlayer target) {
+            PacketDistributor.sendToPlayer(target, new ConfigMessage());
         }
-
-        PacketDistributor.sendToPlayer((ServerPlayer) player, new ConfigMessage());
     }
 }
