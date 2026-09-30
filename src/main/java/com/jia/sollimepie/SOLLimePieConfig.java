@@ -403,23 +403,34 @@ public final class SOLLimePieConfig
 		return isAllowed(food);
 	}
 
+	private record CompiledPatterns(List<String> source, List<Pattern> patterns) {}
+	private static volatile CompiledPatterns compiledPatterns = new CompiledPatterns(List.of(), List.of());
+
 	private static boolean matchesAnyPattern(String query, Collection<? extends String> patterns) {
-		for (String glob : patterns) {
-			StringBuilder pattern = new StringBuilder(glob.length());
-			for (String part : glob.split("\\*", -1)) {
-				if (!part.isEmpty()) { // not necessary
-					pattern.append(Pattern.quote(part));
-				}
-				pattern.append(".*");
-			}
-
-			// delete extraneous trailing ".*" wildcard
-			pattern.delete(pattern.length() - 2, pattern.length());
-
-			if (Pattern.matches(pattern.toString(), query)) {
+		CompiledPatterns cached = compiledPatterns;
+		if (!cached.source().equals(patterns)) {
+			List<String> source = List.copyOf(patterns);
+			cached = new CompiledPatterns(source, source.stream().map(SOLLimePieConfig::compileGlob).toList());
+			compiledPatterns = cached;
+		}
+		for (Pattern pattern : cached.patterns()) {
+			if (pattern.matcher(query).matches()) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private static Pattern compileGlob(String glob) {
+		StringBuilder pattern = new StringBuilder(glob.length());
+		for (String part : glob.split("\\*", -1)) {
+			if (!part.isEmpty()) {
+				pattern.append(Pattern.quote(part));
+			}
+			pattern.append(".*");
+		}
+		// delete extraneous trailing ".*" wildcard
+		pattern.delete(pattern.length() - 2, pattern.length());
+		return Pattern.compile(pattern.toString());
 	}
 }

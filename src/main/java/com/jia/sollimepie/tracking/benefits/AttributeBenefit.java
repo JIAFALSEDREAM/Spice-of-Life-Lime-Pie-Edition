@@ -66,6 +66,9 @@ public final class AttributeBenefit extends Benefit {
             return;
         }
 
+        if (modifier.equals(attr.getModifier(modifier.id()))) {
+            return;
+        }
         attr.removeModifier(modifier);
         attr.addPermanentModifier(modifier);
 

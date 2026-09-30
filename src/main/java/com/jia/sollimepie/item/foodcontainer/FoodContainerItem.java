@@ -108,6 +108,7 @@ public class FoodContainerItem extends Item {
 
     public static int getBestFoodSlot(ItemStackHandler handler, Player player) {
         FoodList foodList = FoodList.get(player);
+        var simulator = foodList.foodSimulator();
         double maxDiversity = -Double.MAX_VALUE;
         int bestSlot = -1;
         for (int i = 0; i < handler.getSlots(); i++) {
@@ -115,7 +116,7 @@ public class FoodContainerItem extends Item {
             if (food.isEmpty() || !food.has(DataComponents.FOOD)) {
                 continue;
             }
-            double change = foodList.simulateFoodAdd(food.getItem());
+            double change = simulator.applyAsDouble(food.getItem());
             if (change > maxDiversity) {
                 maxDiversity = change;
                 bestSlot = i;

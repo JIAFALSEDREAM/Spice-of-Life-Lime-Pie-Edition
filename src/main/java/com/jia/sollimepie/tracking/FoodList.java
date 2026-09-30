@@ -14,6 +14,7 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
+import java.util.function.ToDoubleFunction;
 
 @ParametersAreNonnullByDefault
 public final class FoodList implements FoodCapability, INBTSerializable<CompoundTag> {
@@ -141,6 +142,18 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 	 * @return The change in food diversity from eating the food.
 	 */
 	public double simulateFoodAdd(Item food) {
+		return simulateFoodAdd(food, FoodList::getComplexity);
+	}
+
+	/** A short-lived simulator for one selection; never retained across meals or config changes. */
+	public ToDoubleFunction<Item> foodSimulator() {
+		Map<FoodInstance, Double> complexities = new HashMap<>();
+		Map<Item, Double> changes = new HashMap<>();
+		return food -> changes.computeIfAbsent(food, item -> simulateFoodAdd(item,
+			instance -> complexities.computeIfAbsent(instance, FoodList::getComplexity)));
+	}
+
+	private double simulateFoodAdd(Item food, ToDoubleFunction<FoodInstance> complexityOf) {
 		if (!SOLLimePieConfig.shouldCount(food) && !SOLLimePieConfig.shouldForbiddenCount()) {
 			return 0.0;
 		}
@@ -150,7 +163,8 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 			FoodInstance foodInstance = entry.getKey();
 			Integer lastEaten = entry.getValue();
 
-			double diversityContribution = calculateDiversityContribution(foodInstance, lastEaten);
+			double complexity = complexityOf.applyAsDouble(foodInstance);
+			double diversityContribution = calculateTimePenalty(lastEaten) * complexity;
 			lastEaten++;
 
 			if (foodInstance.getItem().equals(food)) {
@@ -160,13 +174,13 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 				change -= diversityContribution;
 			}
 			else {
-				double newDiversityContribution = calculateDiversityContribution(foodInstance, lastEaten);
+				double newDiversityContribution = calculateTimePenalty(lastEaten) * complexity;
 				change += (newDiversityContribution - diversityContribution);
 			}
 		}
 
 		if (SOLLimePieConfig.shouldCount(food)) {
-			change += calculateDiversityContribution(new FoodInstance(food), 0);
+			change += calculateTimePenalty(0) * complexityOf.applyAsDouble(new FoodInstance(food));
 		}
 
 		return change;
