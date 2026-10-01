@@ -328,10 +328,11 @@ public final class SOLLimePieConfig
 									"minecraft:golden_apple,4",
 									"minecraft:enchanted_golden_apple,10",
 
-									"largemeals:sweet_berry_custard,5",
-									"largemeals:pufferfish_broth,5",
-									"largemeals:mushroom_pot_pie,5",
-									"largemeals:hearty_lunch,6",
+										// Disabled: the 1.21.1 port uses the different namespace "large_meals".
+										// "largemeals:sweet_berry_custard,5",
+										// "largemeals:pufferfish_broth,5",
+										// "largemeals:mushroom_pot_pie,5",
+										// "largemeals:hearty_lunch,6",
 
 									"farmersrespite:green_tea,3",
 									"farmersrespite:yellow_tea,3",

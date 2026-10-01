@@ -1,6 +1,5 @@
 package com.jia.sollimepie.item.foodcontainer;
 
-import com.jia.sollimepie.integration.Origins;
 import com.jia.sollimepie.tracking.FoodList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,7 +11,6 @@ import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -40,7 +38,9 @@ public class FoodContainerItem extends Item {
             }
             return InteractionResultHolder.sidedSuccess(stack, world.isClientSide);
         }
-        if (isInventoryEmpty(stack) || (ModList.get().isLoaded("origins") && Origins.hasRestrictedDiet(player))) {
+        // Disabled: the legacy Origins API does not exist in the tested 1.21.1 NeoForge ports.
+        // if (ModList.get().isLoaded("origins") && Origins.hasRestrictedDiet(player)) return InteractionResultHolder.pass(stack);
+        if (isInventoryEmpty(stack)) {
             return InteractionResultHolder.pass(stack);
         }
         if (!player.canEat(false)) {

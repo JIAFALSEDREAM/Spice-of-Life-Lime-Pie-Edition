@@ -31,7 +31,7 @@ Useful commands:
 - Added the creative inventory tab and fixed issues with config parsing, lunch containers, and Food Book rendering.
 - Redesigned mod and item icons.
 
-Optional Origins diet integration has not yet been verified with a compatible NeoForge 1.21.1 Origins build.
+The legacy Origins diet integration is disabled because its API is incompatible with the tested NeoForge 1.21.1 ports.
 
 ## Credits and license
 
@@ -75,7 +75,7 @@ Licensed under the GNU Lesser General Public License 2.1. See [LICENSE.txt](LICE
 - 加入专属创造模式标签，并修复了配置解析、午餐容器和食物手册显示中的问题。
 - 模组图标与物品图标重绘。
 
-可选的 Origins 饮食限制联动尚未在兼容 NeoForge 1.21.1 的 Origins 版本中验证。
+旧 Origins 饮食限制联动已停用，其接口不兼容已核对的 NeoForge 1.21.1 移植版。
 
 ## 致谢与许可
 

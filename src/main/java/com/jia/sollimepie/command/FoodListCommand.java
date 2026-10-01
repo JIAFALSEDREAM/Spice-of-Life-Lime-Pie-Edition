@@ -34,8 +34,9 @@ public final class FoodListCommand {
 				.then(withPlayerArgumentOrSender(literal("sync"), FoodListCommand::syncFoodList))
 				.then(withPlayerArgumentOrSender(literal("clear"), FoodListCommand::clearFoodList))
 				.then(withPlayerArgumentOrSender(literal("diversity"), FoodListCommand::displayDiversity))
-				.then(withPlayerArgumentOrSender(literal("resetOrigin"), FoodListCommand::resetPlayerOrigin))
-				.then(withNoArgument(literal("resetAllOrigins"), FoodListCommand::resetAllOrigins))
+				// Disabled with the legacy Origins diet integration until its 1.21.1 power API is adapted.
+				// .then(withPlayerArgumentOrSender(literal("resetOrigin"), FoodListCommand::resetPlayerOrigin))
+				// .then(withNoArgument(literal("resetAllOrigins"), FoodListCommand::resetAllOrigins))
 		);
 	}
 
