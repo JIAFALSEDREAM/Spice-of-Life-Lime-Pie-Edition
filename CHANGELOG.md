@@ -1,3 +1,13 @@
+# 3.1.0 — NeoForge 1.21.1
+
+- Added permanent food history with `Miscellaneous.queueSize = 0`.
+- Added `Advanced.decayEnabled` to disable contribution decay independently of history retention.
+- Expanded meal counts, history length and decay positions to 2,147,483,647; increased the base contribution limit to 1,000,000.
+- Kept reward tiers freely configurable and added detailed English tutorials and examples to generated config comments.
+- Preserved old food-history saves, prevented large counter overflow and synchronized the new decay setting with clients.
+- Optimized automatic food selection for permanent history without decay and repeated updates of large attribute reward lists.
+- Added regression tests and reproducible performance benchmarks.
+
 # 3.0.0 — NeoForge 1.21.1
 
 - Ported by JIA from Vice's Spice of Life: Apple Pie Edition.
