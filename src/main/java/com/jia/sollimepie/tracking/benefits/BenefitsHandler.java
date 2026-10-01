@@ -9,6 +9,9 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.neoforged.neoforge.event.entity.living.LivingEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
@@ -54,6 +57,8 @@ public class BenefitsHandler {
         EffectBenefitsCapability effectBenefits = EffectBenefitsCapability.get(player);
         effectBenefits.clear();
 
+        Map<AttributeInstance, Map<ResourceLocation, AttributeModifier>> attributeIndexes = new HashMap<>();
+
         for (int i = 0; i < thresholds.size(); i++) {
             double thresh = thresholds.get(i);
             if (i >= benefitsList.size()) {
@@ -61,7 +66,10 @@ public class BenefitsHandler {
             }
             benefitsList.get(i).forEach(b -> {
                 // != acts as XOR
-                if((diversity >= thresh) != b.isDetriment()) {
+                boolean active = (diversity >= thresh) != b.isDetriment();
+                if (b instanceof AttributeBenefit attributeBenefit) {
+                    attributeBenefit.update(player, active, attributeIndexes);
+                } else if (active) {
                     b.applyTo(player);
                 } else {
                     b.removeFrom(player);

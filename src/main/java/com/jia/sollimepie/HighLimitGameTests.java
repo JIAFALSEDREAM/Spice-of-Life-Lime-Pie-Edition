@@ -118,6 +118,13 @@ public final class HighLimitGameTests {
             var luck = Objects.requireNonNull(player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.LUCK));
             helper.assertTrue(luck.getModifiers().size() == 1024 && BenefitsHandler.getBenefitInfo(1024, 0).getLeft().size() == 1024,
                 "Reward tiers were truncated");
+            var modifier = luck.getModifiers().iterator().next();
+            BenefitsHandler.updateBenefits(player, 1024);
+            helper.assertTrue(luck.getModifier(modifier.id()) == modifier, "Unchanged reward was replaced");
+            luck.removeModifier(modifier.id());
+            luck.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(modifier.id(), 0.5, modifier.operation()));
+            BenefitsHandler.updateBenefits(player, 1024);
+            helper.assertTrue(luck.getModifier(modifier.id()).amount() == 0.001, "External modifier change was missed");
             ConfigHandler.deserializeConfig(ConfigHandler.serializeConfig());
             helper.assertTrue(ConfigHandler.thresholds.size() == 1024 && ConfigHandler.getBenefitsList().size() == 1024,
                 "Tier sync was truncated");

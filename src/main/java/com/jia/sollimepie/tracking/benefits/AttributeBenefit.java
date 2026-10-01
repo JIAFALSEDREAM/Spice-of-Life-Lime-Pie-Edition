@@ -17,6 +17,8 @@ import net.minecraft.core.Holder;
 
 
 import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -76,6 +78,27 @@ public final class AttributeBenefit extends Benefit {
             // increase current health proportionally
             float newHealth = player.getHealth() * player.getMaxHealth() / oldMax;
             player.setHealth(newHealth);
+        }
+    }
+
+    // A fresh index per update avoids N linear vanilla modifier lookups for N unchanged rewards.
+    void update(Player player, boolean active, Map<AttributeInstance, Map<ResourceLocation, AttributeModifier>> indexes) {
+        if (!checkUsage() || player.level().isClientSide) return;
+        AttributeInstance attr = player.getAttribute(attribute);
+        if (attr == null) {
+            if (active) applyTo(player); else removeFrom(player);
+            return;
+        }
+        var applied = indexes.computeIfAbsent(attr, instance -> {
+            Map<ResourceLocation, AttributeModifier> index = new HashMap<>();
+            for (var existing : instance.getModifiers()) index.put(existing.id(), existing);
+            return index;
+        });
+        if (active && !modifier.equals(applied.get(modifier.id()))) {
+            applyTo(player);
+            applied.put(modifier.id(), modifier);
+        } else if (!active && applied.remove(modifier.id()) != null) {
+            removeFrom(player);
         }
     }
 
