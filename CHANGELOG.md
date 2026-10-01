@@ -5,5 +5,12 @@
 - Ported Spice of Life: Lime Pie Edition to Minecraft 1.21.1 and NeoForge.
 - Updated food tracking, lunch containers, menus, recipes, and networking for 1.21.1.
 - Fixed lunch container contents after slot mutations and missing food ID handling.
+- Redrew the food book, lunch bag, lunchbox, golden lunchbox, and mod logo textures (#1).
+- Completed Simplified Chinese translations and replaced hardcoded interface text.
+- Added a creative mode tab and fixed repeated food book background blur.
+- Fixed configuration hot reload and synchronized calculation settings with clients.
+- Fixed configuration parsing and edge cases in lunch container operations.
+- Cached food filtering and simulations, and avoided redundant attribute updates.
+- Disabled legacy integrations that are incompatible with Minecraft 1.21.1.
 
 Origins integration has not been verified with a compatible NeoForge 1.21.1 build.
