@@ -44,6 +44,7 @@ public final class OptimizationGameTests {
             SOLLimePieConfig.SERVER.queueSize.set(16);
             SOLLimePieConfig.SERVER.startDecay.set(4);
             SOLLimePieConfig.SERVER.endDecay.set(12);
+            SOLLimePieConfig.SERVER.decayEnabled.set(false);
             SOLLimePieConfig.SERVER.minFoodsToActivate.set(3);
             SOLLimePieConfig.SERVER.minContribution.set(0.2);
             SOLLimePieConfig.SERVER.defaultContribution.set(2.0);
@@ -56,6 +57,7 @@ public final class OptimizationGameTests {
                 SOLLimePieConfig.SERVER.queueSize.set(32);
                 SOLLimePieConfig.SERVER.startDecay.set(0);
                 SOLLimePieConfig.SERVER.endDecay.set(32);
+                SOLLimePieConfig.SERVER.decayEnabled.set(true);
                 SOLLimePieConfig.SERVER.minFoodsToActivate.set(0);
                 SOLLimePieConfig.SERVER.minContribution.set(0.0);
                 SOLLimePieConfig.SERVER.defaultContribution.set(1.0);
@@ -73,7 +75,7 @@ public final class OptimizationGameTests {
                     });
                 var authoritativeMap = ConfigHandler.complexityMap;
                 ConfigMessage.handle(delayed, context);
-                helper.assertTrue(SOLLimePieConfig.size() == 32 && SOLLimePieConfig.defaultContribution() == 1
+                helper.assertTrue(SOLLimePieConfig.size() == 32 && SOLLimePieConfig.defaultContribution() == 1 && SOLLimePieConfig.decayEnabled()
                     && ConfigHandler.complexityMap == authoritativeMap, "Delayed local packet overwrote server config");
                 ConfigHandler.deserializeConfig(delayed.tag());
             } finally {
@@ -81,7 +83,8 @@ public final class OptimizationGameTests {
             }
             helper.assertTrue(SOLLimePieConfig.size() == 16 && SOLLimePieConfig.startDecay() == 4 && SOLLimePieConfig.endDecay() == 12
                 && SOLLimePieConfig.minFoodsToActivate() == 3 && SOLLimePieConfig.minContribution() == 0.2
-                && SOLLimePieConfig.defaultContribution() == 2 && !SOLLimePieConfig.shouldForbiddenCount(), "Client calculation rules stayed stale");
+                && SOLLimePieConfig.defaultContribution() == 2 && !SOLLimePieConfig.shouldForbiddenCount()
+                && !SOLLimePieConfig.decayEnabled(), "Client calculation rules stayed stale");
             helper.assertTrue(SOLLimePieConfig.isAllowed(Items.BREAD) && !SOLLimePieConfig.isAllowed(Items.CARROT)
                 && SOLLimePieConfig.getBlacklist().equals(List.of("minecraft:c*")), "Client filtering rules stayed stale");
         }
@@ -238,8 +241,8 @@ public final class OptimizationGameTests {
         double change = 0;
         for (var entry : history.getData()) {
             double before = FoodList.calculateDiversityContribution(entry.getKey(), entry.getValue());
-            int age = entry.getValue() + 1;
-            if (entry.getKey().getItem().equals(food) || age >= SOLLimePieConfig.size()) change -= before;
+            int age = entry.getValue() == Integer.MAX_VALUE ? Integer.MAX_VALUE : entry.getValue() + 1;
+            if (entry.getKey().getItem().equals(food) || (SOLLimePieConfig.size() > 0 && age >= SOLLimePieConfig.size())) change -= before;
             else change += FoodList.calculateDiversityContribution(entry.getKey(), age) - before;
         }
         if (SOLLimePieConfig.shouldCount(food)) change += FoodList.calculateDiversityContribution(new FoodInstance(food), 0);
@@ -290,7 +293,7 @@ public final class OptimizationGameTests {
         }
     }
 
-    private static final class ConfigSnapshot implements AutoCloseable {
+    static final class ConfigSnapshot implements AutoCloseable {
         private final List<? extends String> whitelist = SOLLimePieConfig.SERVER.whitelist.get();
         private final List<? extends String> blacklist = SOLLimePieConfig.SERVER.blacklist.get();
         private final List<? extends String> benefits = SOLLimePieConfig.SERVER.benefitsUnparsed.get();
@@ -301,6 +304,7 @@ public final class OptimizationGameTests {
         private final double contribution = SOLLimePieConfig.minContribution();
         private final double defaultContribution = SOLLimePieConfig.defaultContribution();
         private final boolean forbidden = SOLLimePieConfig.shouldForbiddenCount();
+        private final boolean decayEnabled = SOLLimePieConfig.decayEnabled();
         private final Map<FoodInstance, Double> parsedComplexity = ConfigHandler.complexityMap;
         private final List<Double> parsedThresholds = ConfigHandler.thresholds;
         private final BenefitList parsedBenefits = ConfigHandler.benefitsList;
@@ -319,6 +323,7 @@ public final class OptimizationGameTests {
             SOLLimePieConfig.SERVER.minContribution.set(contribution);
             SOLLimePieConfig.SERVER.defaultContribution.set(defaultContribution);
             SOLLimePieConfig.SERVER.shouldForbiddenCount.set(forbidden);
+            SOLLimePieConfig.SERVER.decayEnabled.set(decayEnabled);
             ConfigHandler.complexityMap = parsedComplexity;
             ConfigHandler.thresholds = parsedThresholds;
             ConfigHandler.benefitsList = parsedBenefits;

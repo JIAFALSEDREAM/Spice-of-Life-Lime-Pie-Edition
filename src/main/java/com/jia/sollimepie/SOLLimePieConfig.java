@@ -75,6 +75,7 @@ public final class SOLLimePieConfig
 		tag.putInt("size", size());
 		tag.putInt("startDecay", startDecay());
 		tag.putInt("endDecay", endDecay());
+		tag.putBoolean("decayEnabled", decayEnabled());
 		tag.putInt("minimumFoods", minFoodsToActivate());
 		tag.putDouble("minContribution", minContribution());
 		tag.putDouble("defaultContribution", defaultContribution());
@@ -92,6 +93,7 @@ public final class SOLLimePieConfig
 		SERVER.queueSize.set(tag.getInt("size"));
 		SERVER.startDecay.set(tag.getInt("startDecay"));
 		SERVER.endDecay.set(tag.getInt("endDecay"));
+		SERVER.decayEnabled.set(!tag.contains("decayEnabled") || tag.getBoolean("decayEnabled"));
 		SERVER.minFoodsToActivate.set(tag.getInt("minimumFoods"));
 		SERVER.minContribution.set(tag.getDouble("minContribution"));
 		SERVER.defaultContribution.set(tag.getDouble("defaultContribution"));
@@ -132,6 +134,8 @@ public final class SOLLimePieConfig
 		return SERVER.startDecay.get();
 	}
 
+	public static boolean decayEnabled() { return SERVER.decayEnabled.get(); }
+
 	public static Double minContribution() {
 		return SERVER.minContribution.get();
 	}
@@ -161,6 +165,7 @@ public final class SOLLimePieConfig
 		public final DoubleValue defaultContribution;
 		public final IntValue endDecay;
 		public final IntValue startDecay;
+		public final BooleanValue decayEnabled;
 
 		public final BooleanValue shouldForbiddenCount;
 
@@ -173,6 +178,12 @@ public final class SOLLimePieConfig
 					.translation(localizationPath("thresholds"))
 					.comment(" A list of diversity value thresholds, in ascending order. When the player's food diversity reaches a threshold,\n"
 							+" they will get the benefits associated with that threshold.\n"
+							+" There is no fixed tier count or score cap: the 17 default tiers are only a starting preset.\n"
+							+" Use decimal numbers, for example thresholds = [2.0, 10.0, 250.0].\n"
+							+" Keep this list the same length as benefitsUnparsed; entries are paired by position.\n"
+							+" Extra unmatched entries have no effect. All reached tiers apply together, and their bonuses\n"
+							+" are removed if diversity drops below the corresponding threshold. The Food Book adds pages automatically.\n"
+							+" Very long lists increase reward-update, config-sync and book-opening costs.\n"
 							+"\n")
 					.defineList("thresholds", Lists.newArrayList(2.0, 5.0, 7.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0), () -> 0.0, e -> e instanceof Double);
 
@@ -186,7 +197,7 @@ public final class SOLLimePieConfig
 							+" A detriment is applied while the player has less diversity than the threshold,\n"
 							+" and will be removed when the threshold is reached.\n"
 							+" Each benefit is a string with the following form: [+/-][type],[registry name],[value] (without the brackets)\n"
-							+" A leading plus (or the of a symbol) denotes a benefit, while a minus denotes a detriment.\n"
+							+" A leading plus (or no symbol) denotes a benefit, while a minus denotes a detriment.\n"
 							+" The type can either be 'attribute' for attribute modifiers or 'effect' for potion effects\n"
 							+" Registry names for common vanilla attributes are \n"
 							+" generic.max_health, generic.knockback_resistance, generic.movement_speed, generic.luck, \n"
@@ -202,6 +213,11 @@ public final class SOLLimePieConfig
 							+" and Strength II at the corresponding threshold.\n"
 							+" 'attribute,generic.attack_damage,1;-effect,slowness,0' will give +1 attack damage at the corresponding threshold\n"
 							+" and Slowness I below the corresponding threshold.\n"
+							+" Complete two-tier example: thresholds = [5.0, 20.0] and\n"
+							+" benefitsUnparsed = [\"attribute,generic.max_health,2\", \"effect,strength,0;-effect,slowness,0\"].\n"
+							+" Below 20 points, Slowness I applies; at 5 points, +2 health also applies; at 20 points,\n"
+							+" Strength I replaces the slowness penalty while the earlier health bonus remains.\n"
+							+" Attribute values add directly (2 health points = one heart) and still obey Minecraft's attribute limits.\n"
 							+"\n")
 					.defineList("benefitsUnparsed", Lists.newArrayList(
 							"effect,speed,0",
@@ -225,9 +241,10 @@ public final class SOLLimePieConfig
 
 			minFoodsToActivate = builder
 					.translation(localizationPath("min_foods_to_activate"))
-					.comment(" The minimum number of foods a player needs to eat before any benefits are applied.\n"
+					.comment(" The minimum number of recorded meals before benefits or detriments can activate.\n"
+							+" This counts meals, including repetitions, not distinct food types. 0 enables rewards immediately.\n"
 							 +"\n")
-					.defineInRange("minFoodsToActivate", 0, 0, 1000);
+					.defineInRange("minFoodsToActivate", 0, 0, Integer.MAX_VALUE);
 
 			builder.pop();
 			builder.push("Filtering");
@@ -235,12 +252,15 @@ public final class SOLLimePieConfig
 			blacklist = builder
 					.translation(localizationPath("blacklist"))
 					.comment(" Foods in this list won't contribute to food diversity.\n"
+							+" Use item IDs or '*' wildcards, e.g. [\"minecraft:rotten_flesh\", \"examplemod:*\"]. Tags are not supported.\n"
+							+" Filtered meals still age other records when shouldForbiddenCount is true.\n"
 							+"\n")
 					.defineListAllowEmpty("blacklist", Lists.newArrayList(), () -> "", e -> e instanceof String);
 
 			whitelist = builder
 					.translation(localizationPath("whitelist"))
 					.comment("\n When this list contains anything, the blacklist is ignored and instead only foods from here count.\n"
+							+" Example: [\"minecraft:bread\", \"farmersdelight:*\"]. An empty list restores normal blacklist filtering.\n"
 							+"\n")
 					.defineListAllowEmpty("whitelist", Lists.newArrayList(), () -> "", e -> e instanceof String);
 
@@ -261,48 +281,66 @@ public final class SOLLimePieConfig
 
 			queueSize = builder
 					.translation(localizationPath("queue_size"))
-					.comment("\n How many foods should be tracked. I.e., how many food items eaten in the past should count toward food diversity.\n"
-							+" Note that the larger this is, the higher your potential diversity value can be, so keep this mind\n"
-							+" if you are defining custom thresholds/benefits above.\n"
-							+" !!!If you update queueSize, and leave the other advanced options unchanged,\n"
-							+" make sure you change endDecay (below) to match queueSize, or else nothing will change!!!\n"
+					.comment("\n Number of recent recorded meals covered by the history. Default: 32. Set 0 for permanent records.\n"
+							+" Each food type occupies one record; eating it again refreshes its age instead of adding duplicate points.\n"
+							+" A positive size removes a food once that many later recorded meals have been eaten.\n"
+							+" Recipes for common play styles (settings belong to the sections shown):\n"
+							+" - Longer recent diet: Miscellaneous.queueSize = 256, Advanced.endDecay = 256, decayEnabled = true.\n"
+							+" - Permanent collection: Miscellaneous.queueSize = 0, Advanced.decayEnabled = false.\n"
+							+" - Recent diet without fading: Miscellaneous.queueSize = 64, Advanced.decayEnabled = false.\n"
+							+" Permanent history alone does not disable decay: with decay enabled and minContribution = 0, old\n"
+							+" foods remain listed but can contribute zero points. Increasing queueSize alone does not extend endDecay.\n"
+							+" Retention has no preallocated array: costs grow with distinct foods actually recorded, not this number.\n"
+							+" Large histories increase meal processing and save/sync costs; automatic food selection with decay\n"
+							+" also scans history for candidate foods. Start small when tuning a large modpack.\n"
 							+"\n")
-					.defineInRange("queueSize", 32, 1, 1000);
+					.defineInRange("queueSize", 32, 0, Integer.MAX_VALUE);
 
 			builder.pop();
 			builder.push("Advanced");
 
+			decayEnabled = builder
+					.translation(localizationPath("decay_enabled"))
+					.comment(" Whether food contributions decay as more meals are eaten. If false, decay settings are ignored,\n"
+							+" but records still expire when queueSize is greater than 0.\n"
+							+" Disable this together with queueSize = 0 to preserve every food's full contribution permanently.\n")
+					.define("decayEnabled", true);
+
 			minContribution = builder
 					.translation(localizationPath("min_contribution"))
-					.comment(" These config options all affect the technical details of how diversity is calculated.\n"
-							+" Please look at the explanation on the wiki on the github to see how these values work.\n"
-							+"\n"
-							+" Lowest possible diversity contribution a food can give. This is a multiplier, not an\n"
-							+" absolute value!\n"
+					.comment(" Lowest contribution multiplier after decay, from 0.0 to 1.0. This is a proportion, not a point value.\n"
+							+" A food's score is its food weight multiplied by an age multiplier. Its multiplier starts at 1.0,\n"
+							+" stays there through startDecay meals, falls linearly to minContribution at endDecay, then stays there.\n"
+							+" Example: weight 4, startDecay = 0, endDecay = 100, minContribution = 0.25 gives 4 points when fresh,\n"
+							+" 2.5 points after 50 later meals and 1 point after 100. A finite queue can still remove the record.\n"
+							+" Decay measures recorded meals, not elapsed seconds. These settings are ignored if decayEnabled is false.\n"
 							+"\n")
 					.defineInRange("minContribution", 0.0, 0.0, 1.0);
 
 			defaultContribution = builder
 					.translation(localizationPath("default_contribution"))
-					.comment("\n The default diversity value when you eat a food. There is little reason to ever change this.\n"
+					.comment("\n Base parameter for foods without an explicit complexity override; range 0.0 to 1000000.0.\n"
+							+" Their actual weight is calculated from nutrition and saturation, so 1.0 does not mean one point per food.\n"
+							+" Increase this to raise general food scores, then adjust thresholds to match. Use complexityUnparsed\n"
+							+" to set an exact weight for one food instead. Explicit overrides ignore this parameter.\n"
 							+"\n")
-					.defineInRange("defaultContribution", 1.0, 0.0, 100.0);
+					.defineInRange("defaultContribution", 1.0, 0.0, 1_000_000.0);
 
 			endDecay = builder
 					.translation(localizationPath("end_decay"))
 					.comment("\n How many meals in the past should the diversity penalty stop from.\n"
-							+" **Needs to be less than queueSize and greater than startDecay!!!**\n"
+							+" Must be at least startDecay, and at most queueSize unless queueSize is 0 (permanent records).\n"
 							+" Note that if you update queueSize, to retain the default behavior, you need to also\n"
 							+" set endDecay equal to the queueSize\n"
 							+"\n")
-					.defineInRange("endDecay", 32, 0, 1000);
+					.defineInRange("endDecay", 32, 0, Integer.MAX_VALUE);
 
 			startDecay = builder
 					.translation(localizationPath("start_decay"))
 					.comment("\n How many meals in the past should the diversity time penalty start to apply.\n"
-							+" **Needs to be less than queueSize and less than or equal to endDecay!!!**\n"
+							+" Must be less than or equal to endDecay. Ignored when decayEnabled is false.\n"
 							+"\n")
-					.defineInRange("startDecay", 0, 0, 1000);
+					.defineInRange("startDecay", 0, 0, Integer.MAX_VALUE);
 
 			shouldForbiddenCount = builder
 					.translation(localizationPath("should_forbidden_count"))
@@ -317,9 +355,12 @@ public final class SOLLimePieConfig
 					.translation(localizationPath("complexity_unparsed"))
 					.comment(" Define custom complexity values for individual foods here.\n"
 							+" The complexity value of a food is how much diversity points it gives. \n"
-							+" The base diversity value of foods not defined here is equal to defaultContribution.\n"
+							+" Foods not listed here use the nutrition/saturation formula controlled by defaultContribution.\n"
 							+" Each entry in the list should be a string defining one food, and the format is [registry name],[value]\n"
 							+" Note that tags are NOT currently supported.\n"
+							+" Example: [\"minecraft:bread,2.5\", \"minecraft:golden_apple,8\"]. These are fresh, full weights;\n"
+							+" decay still multiplies them when enabled. Use finite, nonnegative values, exact IDs and no spaces.\n"
+							+" Unknown or non-food items are skipped with a log warning. Remove an entry to restore its calculated weight.\n"
 							+"\n")
 					.defineListAllowEmpty("complexityUnparsed", Lists.newArrayList(
 									"minecraft:cooked_porkchop,2",

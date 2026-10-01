@@ -27,7 +27,7 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 		return player.getData(CapabilityHandler.FOOD);
 	}
 
-	private static final int MAX_FOODS_EATEN = 1000;
+	private static final int MAX_FOODS_EATEN = Integer.MAX_VALUE;
 	private int foodsEaten = 0;
 	// Keys - foods eaten, Values - lastEaten, i.e. # meals ago the food was last eaten
 	private final Map<FoodInstance, Integer> uniqueFoods = new HashMap<>();
@@ -46,7 +46,7 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 
 		CompoundTag tag = new CompoundTag();
 		StringTag s = StringTag.valueOf(encodedFood);
-		FloatTag i = FloatTag.valueOf(lastEaten);
+		IntTag i = IntTag.valueOf(lastEaten);
 		tag.put(NBT_KEY_UNIQUE_FOOD, s);
 		tag.put(NBT_KEY_LAST_EATEN, i);
 
@@ -70,9 +70,9 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 	}
 
 	@Nullable
-	private Pair<FoodInstance, Integer> deserializeUniqueFood(Pair<String, Float> encoded) {
+	private Pair<FoodInstance, Integer> deserializeUniqueFood(Pair<String, Integer> encoded) {
 		FoodInstance uniqueFood = FoodInstance.decode(encoded.getKey());
-		Integer lastEaten = Math.round(encoded.getValue());
+		Integer lastEaten = Math.max(0, encoded.getValue());
 
 		if (uniqueFood == null) {
 			return null;
@@ -88,11 +88,12 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 		uniqueFoods.clear();
 		list.stream()
 			.map(nbt-> (CompoundTag) nbt)
-			.map(nbt -> new ImmutablePair<>(nbt.getString(NBT_KEY_UNIQUE_FOOD), nbt.getFloat(NBT_KEY_LAST_EATEN)))
+			// getInt also accepts legacy float tags, whose values were integer meal ages.
+			.map(nbt -> new ImmutablePair<>(nbt.getString(NBT_KEY_UNIQUE_FOOD), nbt.getInt(NBT_KEY_LAST_EATEN)))
 			.map(this::deserializeUniqueFood)
 			.filter(Objects::nonNull)
 			.forEach(pair -> uniqueFoods.put(pair.getKey(), pair.getValue()));
-		foodsEaten = tag.getInt(NBT_KEY_FOODS_EATEN);
+		foodsEaten = Math.max(0, tag.getInt(NBT_KEY_FOODS_EATEN));
 	}
 
 	@Override
@@ -116,10 +117,10 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 			FoodInstance foodInstance = entry.getKey();
 			Integer lastEaten = entry.getValue();
 
-			lastEaten++;
+			lastEaten = nextAge(lastEaten);
 			foodMap.put(foodInstance, lastEaten);
 
-			if (lastEaten >= SOLLimePieConfig.size()) {
+			if (SOLLimePieConfig.size() > 0 && lastEaten >= SOLLimePieConfig.size()) {
 				toRemove.add(foodInstance);
 			}
 		}
@@ -157,6 +158,13 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 		if (!SOLLimePieConfig.shouldCount(food) && !SOLLimePieConfig.shouldForbiddenCount()) {
 			return 0.0;
 		}
+
+		// Permanent records without decay have no history-wide change to simulate.
+		if (SOLLimePieConfig.size() == 0 && !SOLLimePieConfig.decayEnabled()) {
+			FoodInstance candidate = new FoodInstance(food);
+			return SOLLimePieConfig.shouldCount(food) && !uniqueFoods.containsKey(candidate)
+				? complexityOf.applyAsDouble(candidate) : 0.0;
+		}
 		double change = 0.0;
 
 		for (Map.Entry<FoodInstance, Integer> entry : uniqueFoods.entrySet()) {
@@ -165,12 +173,12 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 
 			double complexity = complexityOf.applyAsDouble(foodInstance);
 			double diversityContribution = calculateTimePenalty(lastEaten) * complexity;
-			lastEaten++;
+			lastEaten = nextAge(lastEaten);
 
 			if (foodInstance.getItem().equals(food)) {
 				change -= diversityContribution;
 			}
-			else if (lastEaten >= SOLLimePieConfig.size()) {
+			else if (SOLLimePieConfig.size() > 0 && lastEaten >= SOLLimePieConfig.size()) {
 				change -= diversityContribution;
 			}
 			else {
@@ -209,12 +217,15 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 	}
 
 	private static double calculateTimePenalty(int lastEaten) {
+		if (!SOLLimePieConfig.decayEnabled()) {
+			return 1.0;
+		}
 		int size = SOLLimePieConfig.size();
 		int startDecay = SOLLimePieConfig.startDecay();
 		int endDecay = SOLLimePieConfig.endDecay();
 		double minContribution = SOLLimePieConfig.minContribution();
 
-		if (startDecay > endDecay || startDecay < 0 || endDecay > size ||
+		if (startDecay > endDecay || startDecay < 0 || (size > 0 && endDecay > size) ||
 				minContribution > 1 || minContribution < 0) {
 			// invalid
 			return 0.0;
@@ -229,6 +240,10 @@ public final class FoodList implements FoodCapability, INBTSerializable<Compound
 
 		double slope = (1.0 - minContribution) / (double) (startDecay - endDecay);
 		return slope * (lastEaten - startDecay) + 1.0;
+	}
+
+	private static int nextAge(int age) {
+		return age == Integer.MAX_VALUE ? age : age + 1;
 	}
 
 	public static double getComplexity(FoodInstance food) {

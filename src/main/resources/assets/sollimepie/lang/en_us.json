@@ -48,5 +48,6 @@
 	"config.sollimepie.is_food_tooltip_enabled": "Enable Food Tooltip",
 	"config.sollimepie.food_blacklist": "Blacklist",
 	"config.sollimepie.food_whitelist": "Whitelist (disables blacklist)",
-	"config.sollimepie.reset_on_death": "Reset on Death"
+	"config.sollimepie.reset_on_death": "Reset on Death",
+	"config.sollimepie.decay_enabled": "Enable Food Contribution Decay"
 }

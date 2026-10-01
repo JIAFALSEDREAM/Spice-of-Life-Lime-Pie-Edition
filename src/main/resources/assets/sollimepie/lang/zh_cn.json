@@ -47,5 +47,6 @@
 	"config.sollimepie.is_food_tooltip_enabled": "启用食物提示",
 	"config.sollimepie.food_blacklist": "黑名单",
 	"config.sollimepie.food_whitelist": "白名单（启用后禁用黑名单）",
-	"config.sollimepie.reset_on_death": "死亡时重置"
+	"config.sollimepie.reset_on_death": "死亡时重置",
+	"config.sollimepie.decay_enabled": "启用食物贡献衰减"
 }
