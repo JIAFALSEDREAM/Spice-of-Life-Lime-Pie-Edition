@@ -109,6 +109,21 @@ jobs:
           else
             cp CHANGELOG.md RELEASE_NOTES.md
           fi
+          cp RELEASE_NOTES.md GITHUB_RELEASE_NOTES.md
+          previous_tag="$(git describe --tags --first-parent --match 'v[0-9]*' --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)"
+          commit_range="$GITHUB_SHA"
+          {
+            printf '\n## Commit summary\n\n'
+            if [ -n "$previous_tag" ]; then
+              commit_range="$previous_tag..$GITHUB_SHA"
+              printf '[Full changelog](%s/%s/compare/%s...%s)\n\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$previous_tag" "$GITHUB_SHA"
+            else
+              printf 'First release: commits on the release branch up to this version.\n\n'
+            fi
+            printf '<details>\n<summary>Commits</summary>\n\n'
+            git log --first-parent --format="- [%h]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/%H) %s" "$commit_range"
+            printf '\n</details>\n'
+          } >> GITHUB_RELEASE_NOTES.md
 
       - name: Publish GitHub release
         shell: bash
@@ -125,9 +140,9 @@ jobs:
           fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$RELEASE_JAR" --clobber
-            gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" --notes-file RELEASE_NOTES.md "${prerelease[@]}"
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" --notes-file GITHUB_RELEASE_NOTES.md "${prerelease[@]}"
           else
-            gh release create "$RELEASE_TAG" "$RELEASE_JAR" --title "$RELEASE_NAME" --notes-file RELEASE_NOTES.md --target "$GITHUB_SHA" "${prerelease[@]}"
+            gh release create "$RELEASE_TAG" "$RELEASE_JAR" --title "$RELEASE_NAME" --notes-file GITHUB_RELEASE_NOTES.md --target "$GITHUB_SHA" "${prerelease[@]}"
           fi
 
       - name: Publish CurseForge release
