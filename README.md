@@ -1,87 +1,67 @@
 # Spice of Life: Lime Pie Edition
 
-[简体中文](#简体中文)
+Eat varied foods to earn configurable bonuses, including extra maximum health. Repeating the same foods lowers your diversity.
 
-Eat a variety of foods to build up your food diversity. A higher score grants configurable bonuses, including extra maximum health. Eating the same foods repeatedly lowers your score.
+A port of **[Spice of Life: Apple Pie Edition](https://github.com/txnimc/Spice-of-Life-Apple-Pie)** to a newer Minecraft version, with legacy bug fixes, performance optimizations, redrawn textures, and hardcoded text removed.
 
-Lime Pie is a Minecraft 1.21.1 NeoForge port of Spice of Life: Apple Pie Edition.
+**Requirements:** NeoForge 21.1.251+
 
-## Items and controls
+![Lime Pie items](docs/images/overview.png)
 
-- **Food Book:** View your diversity score, recent foods, and benefits. Use the item to open it, or assign its unbound shortcut in Controls.
-- **Lunchbag, Lunchbox, and Golden Lunchbox:** Store food and eat the stored food that helps your diversity most. Sneak and use a container to open it.
-- **Creative inventory:** Find all four items in the Lime Pie tab, marked with the Food Book icon.
+## How diversity works
 
-## Requirements and configuration
+Lime Pie rewards **maintaining a varied diet**. Your score reflects your recent meals, and bonuses follow your current score.
 
-Requires Minecraft 1.21.1, NeoForge 21.1.251 or newer, and Java 21.
+- **Recent history:** By default, only the last 32 recorded meals count. A food's contribution gradually fades as you eat more meals and disappears when it leaves that history.
+- **Repeated foods:** Each food type contributes once. Eating it again refreshes its contribution, while other foods continue to fade.
+- **Food value:** Contributions are weighted by hunger restored and saturation, so different foods can add different amounts to your score.
+- **Ongoing bonuses:** Reaching a score threshold grants its bonuses; falling below it removes them. Keep rotating foods to maintain your benefits.
 
-Change food history, diversity rules, and benefits in the generated NeoForge config files. Server settings are stored per world in `serverconfig`.
+History length, decay, food weights, and bonuses are configurable.
 
-Useful commands:
+**Alongside Carrot Edition:** Carrot Edition rewards the total number of different foods you have tried, while Lime Pie rewards variety in your recent diet. Their food tracking and bonuses are independent, so they are expected to coexist and their health bonuses to stack.
 
-- `/sollimepie diversity` — show your diversity score.
-- `/sollimepie clear` — clear your food history and its benefits.
-- `/sollimepie sync` — resend your food history to the client.
+## Features
 
-## Additional updates in Lime Pie
+- **Food Book:** Check your diversity, recent foods, and benefits. Use the book or bind its shortcut in Controls.
+- **Lunchbag, Lunchbox, and Golden Lunchbox:** Store food and automatically eat what helps your diversity most. Sneak and use to open.
 
-- Ported to NeoForge 1.21.1 under the `sollimepie` mod ID.
-- Added Simplified Chinese translations for items, the Food Book, tooltips, controls, and command messages. UI text uses translation keys instead of fixed English strings.
-- Added the creative inventory tab and fixed issues with config parsing, lunch containers, and Food Book rendering.
-- Redesigned mod and item icons.
+![Food Book: diversity, recent foods, and active benefits](docs/images/food-book.png)
 
-The legacy Origins diet integration is disabled because its API is incompatible with the tested NeoForge 1.21.1 ports.
+![Golden Lunchbox filled with different foods](docs/images/lunch-containers.png)
 
 ## Credits and license
 
-- **Lime Pie port:** JIA. **Texture redesign:** [gallium](https://github.com/9qtzq6zstf-dev).
-- **Apple Pie Edition:** Vice. [Original repository](https://github.com/txnimc/Spice-of-Life-Apple-Pie).
-- **Potato Edition:** [Kevun1](https://github.com/Kevun1/Spice-of-Life-Potato-Edition).
-- **Carrot Edition:** [Cazsius and contributors](https://github.com/Cazsius/Spice-of-Life-Carrot-Edition).
+- **Development and port:** JIA · **Textures:** [gallium](https://github.com/9qtzq6zstf-dev)
+- **Apple Pie Edition:** [Vice](https://github.com/txnimc/Spice-of-Life-Apple-Pie)
+- **Predecessors:** [Potato Edition · Kevun1](https://github.com/Kevun1/Spice-of-Life-Potato-Edition) · [Carrot Edition · Cazsius & contributors](https://github.com/Cazsius/Spice-of-Life-Carrot-Edition)
 
-Licensed under the GNU Lesser General Public License 2.1. See [LICENSE.txt](LICENSE.txt).
+License: [LGPL-2.1](LICENSE.txt)
 
 ---
 
-# 简体中文
+## 简体中文
 
-《生活调味料：青柠派版》让你通过丰富饮食提高多样性，获得额外生命值等可配置的增益。总吃同样的食物，多样性则会下降。
+**生活调味料：青柠派版** — 饮食越丰富，就能获得额外生命值等可配置增益；反复吃同样的食物，多样性就会下降。
 
-本模组是《生活调味料：苹果派版》的 Minecraft 1.21.1 NeoForge 移植版。
+是《[苹果派版](https://github.com/txnimc/Spice-of-Life-Apple-Pie)》的高版本移植，修复遗留问题、优化性能、重绘贴图并去除文本硬编码。
 
-## 物品与操作
+**运行要求：** NeoForge 21.1.251+
 
-- **食物手册：** 查看多样性分数、最近吃过的食物和增益。使用物品即可打开，也可以在“控制”中为它设置快捷键；默认未绑定。
-- **午餐袋、午餐盒和金午餐盒：** 储存食物，使用时会吃掉其中最有助于提高多样性的食物。潜行使用可打开容器。
-- **创造模式：** 四件物品都在青柠派版的专属标签中，标签图标是食物手册。
+### 多样性如何计算
 
-## 运行要求与配置
+青柠派版鼓励**持续保持丰富的饮食**。分数取决于近期进食，增益随当前分数变化。
 
-需要 Minecraft 1.21.1、NeoForge 21.1.251 或更新版本，以及 Java 21。
+- **近期记录：** 默认只计算最近 32 次有效进食。随着后续进食，某种食物的贡献会逐渐衰减，移出记录后不再计分。
+- **重复食物：** 同种食物只计一份贡献。再次食用会刷新它的贡献，其他食物的贡献则继续衰减。
+- **食物价值：** 贡献按食物恢复的饥饿值和饱和度加权，不同食物提供的分数可能不同。
+- **持续增益：** 分数达到门槛时获得对应增益，跌破门槛则失去。想保持增益，就要持续轮换食物。
 
-进食记录长度、多样性规则和增益可以在生成的 NeoForge 配置文件中调整。服务器配置按世界保存在 `serverconfig` 目录。
+记录长度、衰减规则、食物权重和增益均可配置。
 
-常用命令：
+**与胡萝卜版搭配：** 胡萝卜版奖励累计尝试过的不同食物，青柠派版则奖励近期饮食的多样性。两者独立记录进食、施加增益，因此预计可以同时安装并叠加生命值加成。
 
-- `/sollimepie diversity`：查看多样性分数。
-- `/sollimepie clear`：清空进食记录并移除对应增益。
-- `/sollimepie sync`：重新向客户端同步进食记录。
+### 功能
 
-## 青柠派版额外提供的更新内容
-
-- 移植到 NeoForge 1.21.1，模组 ID 为 `sollimepie`。
-- 为物品、食物手册、提示、按键设置和命令反馈加入简体中文；界面文字改用翻译键，不再写死英文。
-- 加入专属创造模式标签，并修复了配置解析、午餐容器和食物手册显示中的问题。
-- 模组图标与物品图标重绘。
-
-旧 Origins 饮食限制联动已停用，其接口不兼容已核对的 NeoForge 1.21.1 移植版。
-
-## 致谢与许可
-
-- **青柠派版移植：** JIA。 **材质重绘：** [gallium](https://github.com/9qtzq6zstf-dev)。
-- **苹果派版：** Vice。[原项目](https://github.com/txnimc/Spice-of-Life-Apple-Pie)。
-- **土豆版：** [Kevun1](https://github.com/Kevun1/Spice-of-Life-Potato-Edition)。
-- **胡萝卜版：** [Cazsius 及贡献者](https://github.com/Cazsius/Spice-of-Life-Carrot-Edition)。
-
-本项目采用 GNU 宽通用公共许可证 2.1 版。详见 [LICENSE.txt](LICENSE.txt)。
+- **食物手册：** 查看饮食多样性、近期吃过的食物和当前增益。使用手册打开，也可在控制设置中绑定快捷键。
+- **午餐袋 / 午餐盒 / 金午餐盒：** 储存食物，使用时自动选择最有助于提高多样性的食物。潜行使用可打开容器。
