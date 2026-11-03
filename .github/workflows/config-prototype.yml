@@ -1,0 +1,83 @@
+name: Config generator
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/config-prototype.yml'
+      - 'docs/config-prototype/**'
+      - 'src/main/java/com/jia/sollimepie/SOLLimePieConfig.java'
+      - 'src/main/resources/assets/sollimepie/lang/**'
+  push:
+    branches: ['1.21.1']
+    paths:
+      - '.github/workflows/config-prototype.yml'
+      - 'docs/config-prototype/**'
+      - 'src/main/java/com/jia/sollimepie/SOLLimePieConfig.java'
+      - 'src/main/resources/assets/sollimepie/lang/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cancel superseded PR checks, but let a production deployment finish.
+concurrency:
+  group: config-generator-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Test and build config generator
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: docs/config-prototype
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: docs/config-prototype/.nvmrc
+          cache: npm
+          cache-dependency-path: docs/config-prototype/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+      # build.py compiles and executes the Java configuration declarations.
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --include=dev
+      - run: npm test
+      - run: npm run build
+      - name: Check deployment files
+        run: |
+          test -s ../../build/config-prototype/index.html
+          test "$(cat ../../build/config-prototype/CNAME)" = 'lime-pie.hello-happy.world'
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: build/config-prototype
+          retention-days: 7
+
+  deploy:
+    name: Deploy config generator to Pages
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/1.21.1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
