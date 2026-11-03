@@ -50,5 +50,19 @@
 	"config.sollimepie.food_whitelist": "Whitelist (disables blacklist)",
 	"config.sollimepie.reset_on_death": "Reset on Death",
 	"config.sollimepie.decay_enabled": "Enable Food Contribution Decay",
-	"config.sollimepie.lunchbox_extra_items": "Extra Lunch Container Items"
+	"config.sollimepie.lunchbox_extra_items": "Extra Lunch Container Items",
+	"config.sollimepie.thresholds": "Diversity Thresholds",
+	"config.sollimepie.benefits_unparsed": "Benefits and Detriments",
+	"config.sollimepie.min_foods_to_activate": "Minimum Meals to Activate Benefits",
+	"config.sollimepie.blacklist": "Blacklist",
+	"config.sollimepie.whitelist": "Whitelist (disables blacklist)",
+	"config.sollimepie.limit_progression_to_survival": "Track Meals Only in Survival Mode",
+	"config.sollimepie.queue_size": "Food History Length",
+	"config.sollimepie.min_contribution": "Minimum Contribution Multiplier",
+	"config.sollimepie.default_contribution": "Default Food Weight Parameter",
+	"config.sollimepie.end_decay": "Decay End Age",
+	"config.sollimepie.start_decay": "Decay Start Age",
+	"config.sollimepie.should_forbidden_count": "Count Filtered Meals in History",
+	"config.sollimepie.complexity_unparsed": "Custom Food Weights",
+	"config.sollimepie.should_show_inactive_benefits": "Show Inactive Benefits"
 }
