@@ -23,7 +23,7 @@ public final class FoodContainerInventory extends ItemStackHandler {
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return !(stack.getItem() instanceof FoodContainerItem) && super.isItemValid(slot, stack);
+        return FoodSlot.canHold(stack) && super.isItemValid(slot, stack);
     }
 
     public void persist() {

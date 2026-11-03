@@ -88,7 +88,7 @@ public class FoodContainer extends AbstractContainerMenu {
         }
 
         ItemStack clickedStack = clickedSlot.getItem();
-        if (!FoodSlot.canHold(clickedStack)) {
+        if (slotId >= nslots && !FoodSlot.canHold(clickedStack)) {
             return ItemStack.EMPTY;
         }
 

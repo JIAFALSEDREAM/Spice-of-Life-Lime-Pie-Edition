@@ -25,6 +25,8 @@ History length, decay, food weights, and bonuses are configurable.
 
 - **Food Book:** Check your diversity, recent foods, and benefits. Use the book or bind its shortcut in Controls.
 - **Lunchbag, Lunchbox, and Golden Lunchbox:** Store food and automatically eat what helps your diversity most. Sneak and use to open.
+  Bowls, glass bottles, and the Food Book can also be stored by default. Allowed leftovers stay inside after eating.
+  Customize `Miscellaneous.lunchboxExtraItems` in the server config with item IDs; an empty list allows only food.
 
 ![Food Book: diversity, recent foods, and active benefits](docs/images/food-book.png)
 
@@ -65,3 +67,5 @@ License: [LGPL-2.1](LICENSE.txt)
 
 - **食物手册：** 查看饮食多样性、近期吃过的食物和当前增益。使用手册打开，也可在控制设置中绑定快捷键。
 - **午餐袋 / 午餐盒 / 金午餐盒：** 储存食物，使用时自动选择最有助于提高多样性的食物。潜行使用可打开容器。
+  默认也能存放空碗、玻璃瓶和食物手册，吃完后允许存放的残留物会留在容器内。
+  可在服务端配置 `Miscellaneous.lunchboxExtraItems` 中填写物品 ID；设为空列表则只允许食物。

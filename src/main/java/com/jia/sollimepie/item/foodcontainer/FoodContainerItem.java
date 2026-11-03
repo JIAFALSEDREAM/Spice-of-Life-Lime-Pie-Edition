@@ -89,7 +89,7 @@ public class FoodContainerItem extends Item {
         ItemStack food = handler.getStackInSlot(slot);
         ItemStack before = food.copy();
         ItemStack result = food.finishUsingItem(world, entity);
-        if (!result.has(DataComponents.FOOD) && !result.isEmpty()) {
+        if (!result.isEmpty() && !FoodSlot.canHold(result)) {
             handler.setStackInSlot(slot, ItemStack.EMPTY);
             if (!player.getInventory().add(result)) {
                 player.drop(result, false);

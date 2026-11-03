@@ -85,6 +85,9 @@ public final class SOLLimePieConfig
 		getBlacklist().forEach(value -> blacklist.add(StringTag.valueOf(value)));
 		tag.put("whitelist", whitelist);
 		tag.put("blacklist", blacklist);
+		ListTag lunchboxItems = new ListTag();
+		SERVER.lunchboxExtraItems.get().forEach(value -> lunchboxItems.add(StringTag.valueOf(value)));
+		tag.put("lunchboxExtraItems", lunchboxItems);
 		return tag;
 	}
 
@@ -100,6 +103,9 @@ public final class SOLLimePieConfig
 		SERVER.shouldForbiddenCount.set(tag.getBoolean("forbiddenCount"));
 		SERVER.whitelist.set(tag.getList("whitelist", Tag.TAG_STRING).stream().map(Tag::getAsString).toList());
 		SERVER.blacklist.set(tag.getList("blacklist", Tag.TAG_STRING).stream().map(Tag::getAsString).toList());
+		if (tag.contains("lunchboxExtraItems", Tag.TAG_LIST)) {
+			SERVER.lunchboxExtraItems.set(tag.getList("lunchboxExtraItems", Tag.TAG_STRING).stream().map(Tag::getAsString).toList());
+		}
 	}
 
 	public static List<String> getWhitelist() {
@@ -151,6 +157,7 @@ public final class SOLLimePieConfig
 	public static class Server {
 		public final ConfigValue<List<? extends String>> blacklist;
 		public final ConfigValue<List<? extends String>> whitelist;
+		public final ConfigValue<List<? extends String>> lunchboxExtraItems;
 
 		public final IntValue queueSize;
 
@@ -266,6 +273,16 @@ public final class SOLLimePieConfig
 
 			builder.pop();
 			builder.push("Miscellaneous");
+
+			lunchboxExtraItems = builder
+					.translation(localizationPath("lunchbox_extra_items"))
+					.comment(" Extra non-food items allowed in lunchbags, lunchboxes and golden lunchboxes.\n"
+							+" Use exact item IDs, for example [\"minecraft:bowl\", \"minecraft:glass_bottle\", \"sollimepie:food_book\"].\n"
+							+" Unknown or malformed IDs are ignored safely; optional mod IDs work when that mod is installed. No tags or wildcards.\n"
+							+" Food is always allowed. An empty list allows only food. Lunch containers cannot be nested.\n"
+							+" Allowed bowls and bottles left after eating stay in the lunch container; other leftovers go to your inventory.\n")
+					.defineListAllowEmpty("lunchboxExtraItems", List.of("minecraft:bowl", "minecraft:glass_bottle", "sollimepie:food_book"),
+							() -> "", e -> e instanceof String);
 
 			shouldResetOnDeath = builder
 					.translation(localizationPath("reset_on_death"))

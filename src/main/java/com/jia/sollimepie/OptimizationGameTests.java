@@ -51,6 +51,7 @@ public final class OptimizationGameTests {
             SOLLimePieConfig.SERVER.shouldForbiddenCount.set(false);
             SOLLimePieConfig.SERVER.whitelist.set(List.of("minecraft:bread"));
             SOLLimePieConfig.SERVER.blacklist.set(List.of("minecraft:c*"));
+            SOLLimePieConfig.SERVER.lunchboxExtraItems.set(List.of("minecraft:stick"));
             var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), helper.getLevel().registryAccess());
             try {
                 ConfigMessage.STREAM_CODEC.encode(buffer, new ConfigMessage());
@@ -64,6 +65,7 @@ public final class OptimizationGameTests {
                 SOLLimePieConfig.SERVER.shouldForbiddenCount.set(true);
                 SOLLimePieConfig.SERVER.whitelist.set(List.of("minecraft:carrot"));
                 SOLLimePieConfig.SERVER.blacklist.set(List.of());
+                SOLLimePieConfig.SERVER.lunchboxExtraItems.set(List.of());
                 ConfigMessage delayed = ConfigMessage.STREAM_CODEC.decode(buffer);
                 Connection local = new Connection(PacketFlow.CLIENTBOUND) {
                     @Override public boolean isMemoryConnection() { return true; }
@@ -87,6 +89,8 @@ public final class OptimizationGameTests {
                 && !SOLLimePieConfig.decayEnabled(), "Client calculation rules stayed stale");
             helper.assertTrue(SOLLimePieConfig.isAllowed(Items.BREAD) && !SOLLimePieConfig.isAllowed(Items.CARROT)
                 && SOLLimePieConfig.getBlacklist().equals(List.of("minecraft:c*")), "Client filtering rules stayed stale");
+            helper.assertTrue(SOLLimePieConfig.SERVER.lunchboxExtraItems.get().equals(List.of("minecraft:stick")),
+                "Client lunchbox rules stayed stale");
         }
         helper.succeed();
     }
@@ -296,6 +300,7 @@ public final class OptimizationGameTests {
     static final class ConfigSnapshot implements AutoCloseable {
         private final List<? extends String> whitelist = SOLLimePieConfig.SERVER.whitelist.get();
         private final List<? extends String> blacklist = SOLLimePieConfig.SERVER.blacklist.get();
+        private final List<? extends String> lunchboxExtraItems = SOLLimePieConfig.SERVER.lunchboxExtraItems.get();
         private final List<? extends String> benefits = SOLLimePieConfig.SERVER.benefitsUnparsed.get();
         private final List<? extends String> complexity = SOLLimePieConfig.SERVER.complexityUnparsed.get();
         private final List<? extends Double> thresholds = SOLLimePieConfig.SERVER.thresholds.get();
@@ -313,6 +318,7 @@ public final class OptimizationGameTests {
         public void close() {
             SOLLimePieConfig.SERVER.whitelist.set(whitelist);
             SOLLimePieConfig.SERVER.blacklist.set(blacklist);
+            SOLLimePieConfig.SERVER.lunchboxExtraItems.set(lunchboxExtraItems);
             SOLLimePieConfig.SERVER.benefitsUnparsed.set(benefits);
             SOLLimePieConfig.SERVER.complexityUnparsed.set(complexity);
             SOLLimePieConfig.SERVER.thresholds.set(thresholds);

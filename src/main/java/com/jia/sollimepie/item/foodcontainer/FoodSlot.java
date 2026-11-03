@@ -1,5 +1,8 @@
 package com.jia.sollimepie.item.foodcontainer;
 
+import com.jia.sollimepie.SOLLimePieConfig;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
@@ -28,6 +31,8 @@ public class FoodSlot extends SlotItemHandler {
     }
 
     public static boolean canHold(ItemStack stack) {
-       return stack.has(net.minecraft.core.component.DataComponents.FOOD);
+        return !stack.isEmpty() && !(stack.getItem() instanceof FoodContainerItem)
+            && (stack.has(DataComponents.FOOD)
+                || SOLLimePieConfig.SERVER.lunchboxExtraItems.get().contains(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString()));
     }
 }
