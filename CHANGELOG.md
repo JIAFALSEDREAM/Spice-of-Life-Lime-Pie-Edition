@@ -1,3 +1,12 @@
+# 3.2.0 — NeoForge 1.21.1
+
+- Added `Miscellaneous.lunchboxExtraItems` to allow configurable non-food items in all lunch containers (#2).
+- Generated configs include bowls, glass bottles and the Food Book by default; no enable switch is needed.
+- Allowed remainders returned after eating stay inside the lunch container, including when the player inventory is full.
+- Unknown or malformed item IDs are ignored safely, and optional mod item IDs work when the mod is installed.
+- Unified menu and automation filtering, prevented nested lunch containers and preserved removal of items after config changes.
+- Synchronized extra-item rules on config reload and added regression GameTests.
+
 # 3.1.0 — NeoForge 1.21.1
 
 - Added permanent food history with `Miscellaneous.queueSize = 0`.
