@@ -179,7 +179,9 @@ public final class SOLLimePieConfig
 		public final ConfigValue<List<? extends String>> complexityUnparsed;
 
 		Server(Builder builder) {
-			builder.push("Benefits");
+			builder.comment(" Create or edit this server configuration with the online configuration generator:",
+					" https://lime-pie.hello-happy.world/")
+					.push("Benefits");
 
 			thresholds = builder
 					.translation(localizationPath("thresholds"))
