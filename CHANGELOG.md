@@ -1,3 +1,8 @@
+# 3.2.1 — NeoForge 1.21.1
+
+- Added a bilingual web configuration generator at https://lime-pie.hello-happy.world/.
+- Linked the generator from the README and generated server configuration comments.
+
 # 3.2.0 — NeoForge 1.21.1
 
 - Added `Miscellaneous.lunchboxExtraItems` to allow configurable non-food items in all lunch containers (#2).
