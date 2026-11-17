@@ -1,6 +1,7 @@
 package com.jia.sollimepie.command;
 
 import com.jia.sollimepie.SOLLimePie;
+import com.jia.sollimepie.ConfigReloadHandler;
 import com.jia.sollimepie.integration.Origins;
 import com.jia.sollimepie.lib.Localization;
 import com.jia.sollimepie.tracking.*;
@@ -31,6 +32,8 @@ public final class FoodListCommand {
 	public static void register(RegisterCommandsEvent event) {
 		event.getDispatcher().register(
 			literal(name)
+				.then(literal("reload").requires(source -> source.hasPermission(2))
+					.executes(context -> ConfigReloadHandler.reload(context.getSource())))
 				.then(withPlayerArgumentOrSender(literal("sync"), FoodListCommand::syncFoodList))
 				.then(withPlayerArgumentOrSender(literal("clear"), FoodListCommand::clearFoodList))
 				.then(withPlayerArgumentOrSender(literal("diversity"), FoodListCommand::displayDiversity))

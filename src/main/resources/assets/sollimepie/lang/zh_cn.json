@@ -1,4 +1,12 @@
 {
+	"reload.sollimepie.changed": "[青柠派] 检测到配置更改，已热重载（%s）。",
+	"reload.sollimepie.success": "[青柠派] 配置已重载（%s）。",
+	"reload.sollimepie.warnings": "[青柠派] 配置已重载，发现 %2$s 项警告（%1$s）。无效项已跳过或修正，详情请查看服务器日志。",
+	"reload.sollimepie.failed": "[青柠派] 配置重载失败（%s），详情请查看服务器日志。",
+	"reload.sollimepie.not_loaded": "[青柠派] 当前未加载玩法配置。",
+	"reload.sollimepie.scope.global": "全局配置",
+	"reload.sollimepie.scope.world": "本存档配置",
+
 	"tooltip.sollimepie.disabled": "该食物不计入饮食多样性。",
 
 	"command.sollimepie.sollimepie.no_permissions": "你没有权限对其他玩家执行此命令！",
