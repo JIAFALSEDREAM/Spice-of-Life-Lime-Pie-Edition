@@ -1,3 +1,10 @@
+# 3.3.0 — NeoForge 1.21.1
+
+- Added administrator chat feedback for gameplay configuration hot reloads, including the active global or world scope.
+- Added `/sollimepie reload` and integrated gameplay configuration reloads with vanilla `/reload`; both reread the active file from disk.
+- Deduplicated automatic reload notifications and distinguished successful reloads, skipped/corrected entries, and failures.
+- Added early validation for invalid benefit IDs and non-finite food weights, with regression GameTests.
+
 # 3.2.1 — NeoForge 1.21.1
 
 - Added a bilingual web configuration generator at https://lime-pie.hello-happy.world/.
