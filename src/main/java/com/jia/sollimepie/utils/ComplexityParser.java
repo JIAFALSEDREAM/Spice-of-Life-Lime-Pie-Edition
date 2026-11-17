@@ -10,15 +10,20 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class ComplexityParser {
     public static Map<FoodInstance, Double> parse(List<String> unparsed) {
+        return parse(unparsed, warning -> SOLLimePie.LOGGER.warn(warning));
+    }
+
+    public static Map<FoodInstance, Double> parse(List<String> unparsed, Consumer<String> warnings) {
         Map<FoodInstance, Double> complexityMap = new HashMap<>();
 
         for (String complexityString : unparsed) {
             String[] s = complexityString.split(",", 0);
             if (s.length != 2) {
-                SOLLimePie.LOGGER.warn("Invalid complexity specification: {}", complexityString);
+                warnings.accept("Invalid complexity specification: " + complexityString);
                 continue;
             }
 
@@ -28,7 +33,11 @@ public class ComplexityParser {
                 complexity = Double.parseDouble(s[1]);
             }
             catch (NumberFormatException e) {
-                SOLLimePie.LOGGER.warn("Second argument in complexity specification needs to be a number: {}", complexityString);
+                warnings.accept("Second argument in complexity specification needs to be a number: " + complexityString);
+                continue;
+            }
+            if (!Double.isFinite(complexity) || complexity < 0) {
+                warnings.accept("Complexity must be finite and nonnegative: " + complexityString);
                 continue;
             }
 
@@ -37,17 +46,17 @@ public class ComplexityParser {
                 itemId = ResourceLocation.parse(foodString);
             }
             catch (ResourceLocationException e) {
-                SOLLimePie.LOGGER.warn("Invalid item name: {}", foodString);
+                warnings.accept("Invalid item name: " + foodString);
                 continue;
             }
             if (!BuiltInRegistries.ITEM.containsKey(itemId)) {
-                SOLLimePie.LOGGER.warn("Invalid item name: {}", foodString);
+                warnings.accept("Unknown registered item: " + foodString);
                 continue;
             }
             Item item = BuiltInRegistries.ITEM.get(itemId);
 
             if (!new net.minecraft.world.item.ItemStack(item).has(net.minecraft.core.component.DataComponents.FOOD)) {
-                SOLLimePie.LOGGER.warn("Item is not food: {}", foodString);
+                warnings.accept("Item is not food: " + foodString);
                 continue;
             }
 

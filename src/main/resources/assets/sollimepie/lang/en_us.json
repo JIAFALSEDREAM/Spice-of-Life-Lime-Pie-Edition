@@ -1,4 +1,12 @@
 {
+	"reload.sollimepie.changed": "[Lime Pie] Configuration change detected; hot reload completed (%s).",
+	"reload.sollimepie.success": "[Lime Pie] Configuration reloaded (%s).",
+	"reload.sollimepie.warnings": "[Lime Pie] Configuration reloaded with %2$s warning(s) (%1$s). Invalid entries were skipped or corrected; see the server log.",
+	"reload.sollimepie.failed": "[Lime Pie] Configuration reload failed (%s). See the server log for details.",
+	"reload.sollimepie.not_loaded": "[Lime Pie] No gameplay configuration is currently loaded.",
+	"reload.sollimepie.scope.global": "global configuration",
+	"reload.sollimepie.scope.world": "world configuration",
+
 	"tooltip.sollimepie.disabled": "This food does not contribute to food diversity.",
 
 	"command.sollimepie.sollimepie.no_permissions": "You do not have the permissions necessary to apply this command to other players!",

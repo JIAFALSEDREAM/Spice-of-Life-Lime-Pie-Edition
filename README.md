@@ -28,6 +28,8 @@ History length, decay, food weights, and bonuses are configurable. Read the comm
 - **Client display config:** `config/sollimepie-client.toml` controls tooltips and Food Book display options.
 - **Multiplayer:** Gameplay settings come from the server and are synchronized to clients. Edit the server's config to change them.
 
+Saving the active gameplay config triggers NeoForge's automatic hot reload unless its file watcher is disabled. Administrators receive a colored chat notification with the active scope. `/sollimepie reload` (permission level 2) and vanilla `/reload` also reread the active file, refresh online players' bonuses, and synchronize clients. Yellow feedback indicates skipped or corrected entries; red indicates failure. Check the server log for details. Creating or removing a world override requires reopening the world or restarting the server to select the new source.
+
 ## Features
 
 - **Food Book:** Check your diversity, recent foods, and benefits. Use the book or bind its shortcut in Controls.
@@ -78,6 +80,8 @@ License: [LGPL-2.1](LICENSE.txt)
 - **单个存档覆盖：** 在 `<存档目录>/serverconfig/` 中放置同名文件，即可为该存档单独配置。存在该文件时，优先读取它，覆盖全局玩法配置。
 - **客户端显示配置：** `config/sollimepie-client.toml`，控制提示信息、食物手册等显示选项。
 - **多人联机：** 玩法配置以服务器为准，并同步给客户端；调整玩法时应修改服务器上的配置。
+
+保存当前生效的玩法配置后，NeoForge 会自动热重载（未关闭文件监听时），管理员会收到带有配置来源的彩色聊天提示。也可使用 `/sollimepie reload`（权限等级 2）或原版 `/reload` 重新读取当前文件、刷新在线玩家增益并同步客户端。黄色提示表示存在跳过或修正的配置项，红色表示重载失败，详情请查看服务器日志。新增或移除存档覆盖文件后，需要重新进入存档或重启服务器来切换配置来源。
 
 ### 功能
 

@@ -1,7 +1,6 @@
 package com.jia.sollimepie;
 
 import com.google.common.collect.Lists;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -9,20 +8,15 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.ModConfigSpec.*;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.event.config.ModConfigEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.regex.Pattern;
 
 
-@EventBusSubscriber(modid = SOLLimePie.MOD_ID)
 public final class SOLLimePieConfig
 {
 	private static String localizationPath(String path) {
@@ -50,19 +44,6 @@ public final class SOLLimePieConfig
 	public static void setUp(ModContainer context) {
 		context.registerConfig(ModConfig.Type.SERVER, SERVER_SPEC);
 		context.registerConfig(ModConfig.Type.CLIENT, CLIENT_SPEC);
-	}
-
-	@SubscribeEvent
-	public static void onConfigReload(ModConfigEvent.Reloading event) {
-		if (event.getConfig().getSpec() != SERVER_SPEC) {
-			return;
-		}
-		MinecraftServer currentServer = ServerLifecycleHooks.getCurrentServer();
-		if (currentServer == null) {
-		    return;
-		}
-
-		currentServer.execute(() -> ConfigHandler.reloadServerConfig(currentServer.getPlayerList().getPlayers()));
 	}
 
 	public static List<String> getBlacklist() {

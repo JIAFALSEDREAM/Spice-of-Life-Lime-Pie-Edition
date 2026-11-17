@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import com.electronwill.nightconfig.core.UnmodifiableConfig;
 
 @EventBusSubscriber(modid = SOLLimePie.MOD_ID)
 public class ConfigHandler {
@@ -131,9 +133,21 @@ public class ConfigHandler {
 
     // Called on the server thread. Parse before touching active player benefits.
     static void reloadServerConfig(List<? extends Player> players) {
-        Map<FoodInstance, Double> newComplexity = ComplexityParser.parse(SOLLimePieConfig.getComplexityUnparsed());
-        List<Double> newThresholds = SOLLimePieConfig.getThresholds();
-        BenefitList newBenefits = new BenefitList(BenefitsParser.parse(SOLLimePieConfig.getBenefitsUnparsed()));
+        applyServerConfig(new ParsedConfig(ComplexityParser.parse(SOLLimePieConfig.getComplexityUnparsed()),
+            SOLLimePieConfig.getThresholds(), new BenefitList(BenefitsParser.parse(SOLLimePieConfig.getBenefitsUnparsed()))), players);
+    }
+
+    record ParsedConfig(Map<FoodInstance, Double> complexity, List<Double> thresholds, BenefitList benefits) {}
+
+    static ParsedConfig parseServerConfig(UnmodifiableConfig config, Consumer<String> warnings) {
+        List<Double> thresholds = config.get("Benefits.thresholds");
+        List<String> benefits = config.get("Benefits.benefitsUnparsed");
+        if (thresholds.size() != benefits.size()) warnings.accept("Threshold and benefit lists have different lengths");
+        return new ParsedConfig(ComplexityParser.parse(config.get("Complexity.complexityUnparsed"), warnings),
+            List.copyOf(thresholds), new BenefitList(BenefitsParser.parse(benefits, warnings)));
+    }
+
+    static void applyServerConfig(ParsedConfig parsed, List<? extends Player> players) {
         float[] health = new float[players.size()];
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
@@ -141,9 +155,9 @@ public class ConfigHandler {
             BenefitsHandler.removeAllBenefits(player);
             EffectBenefitsCapability.get(player).clear();
         }
-        complexityMap = newComplexity;
-        thresholds = newThresholds;
-        benefitsList = newBenefits;
+        complexityMap = parsed.complexity();
+        thresholds = parsed.thresholds();
+        benefitsList = parsed.benefits();
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
             BenefitsHandler.updatePlayer(player);
