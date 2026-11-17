@@ -10,9 +10,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Holder;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.neoforged.neoforge.event.entity.living.LivingEvent;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -38,7 +41,28 @@ public class BenefitsHandler {
         }
 
         EffectBenefitsCapability effectBenefits = EffectBenefitsCapability.get(player);
-        effectBenefits.forEach(b -> b.onTick(player));
+        effectBenefits.tick(player);
+    }
+
+    @SubscribeEvent
+    public static void onEffectAdded(MobEffectEvent.Added event) {
+        effectChanged(event, event.getEffectInstance().getEffect());
+    }
+
+    @SubscribeEvent
+    public static void onEffectRemoved(MobEffectEvent.Remove event) {
+        effectChanged(event, event.getEffect());
+    }
+
+    @SubscribeEvent
+    public static void onEffectExpired(MobEffectEvent.Expired event) {
+        if (event.getEffectInstance() != null) effectChanged(event, event.getEffectInstance().getEffect());
+    }
+
+    private static void effectChanged(MobEffectEvent event, Holder<MobEffect> effect) {
+        if (event.getEntity() instanceof ServerPlayer player && player.hasData(CapabilityHandler.EFFECT_BENEFITS)) {
+            EffectBenefitsCapability.get(player).effectChanged(effect);
+        }
     }
 
     public static void updateBenefits(Player player, double diversity) {
@@ -48,6 +72,7 @@ public class BenefitsHandler {
 
         FoodList foodList = FoodList.get(player);
         if (foodList.getFoodsEaten() < SOLLimePieConfig.minFoodsToActivate()) {
+            EffectBenefitsCapability.get(player).clear();
             return;
         }
 
@@ -55,26 +80,30 @@ public class BenefitsHandler {
         List<Double> thresholds = ConfigHandler.thresholds;
 
         EffectBenefitsCapability effectBenefits = EffectBenefitsCapability.get(player);
-        effectBenefits.clear();
+        effectBenefits.beginUpdate();
 
         Map<AttributeInstance, Map<ResourceLocation, AttributeModifier>> attributeIndexes = new HashMap<>();
 
-        for (int i = 0; i < thresholds.size(); i++) {
-            double thresh = thresholds.get(i);
-            if (i >= benefitsList.size()) {
-                return;
-            }
-            benefitsList.get(i).forEach(b -> {
-                // != acts as XOR
-                boolean active = (diversity >= thresh) != b.isDetriment();
-                if (b instanceof AttributeBenefit attributeBenefit) {
-                    attributeBenefit.update(player, active, attributeIndexes);
-                } else if (active) {
-                    b.applyTo(player);
-                } else {
-                    b.removeFrom(player);
+        try {
+            for (int i = 0; i < thresholds.size(); i++) {
+                double thresh = thresholds.get(i);
+                if (i >= benefitsList.size()) {
+                    return;
                 }
-            });
+                benefitsList.get(i).forEach(b -> {
+                    // != acts as XOR
+                    boolean active = (diversity >= thresh) != b.isDetriment();
+                    if (b instanceof AttributeBenefit attributeBenefit) {
+                        attributeBenefit.update(player, active, attributeIndexes);
+                    } else if (active) {
+                        b.applyTo(player);
+                    } else {
+                        b.removeFrom(player);
+                    }
+                });
+            }
+        } finally {
+            effectBenefits.endUpdate();
         }
     }
 

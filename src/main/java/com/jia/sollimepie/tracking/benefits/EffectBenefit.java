@@ -11,15 +11,12 @@ import net.minecraft.ResourceLocationException;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
 
 /**
  * Each instance represents a specific potion effect. Handles logic for application to player.
  */
 public final class EffectBenefit extends Benefit{
     private Holder<MobEffect> effect;
-    private final int DEFAULT_DURATION = 300;
-    private final int REAPPLY_DURATION = 200;
 
     public EffectBenefit(String name, double value, double threshold, boolean detriment) {
         super("effect", name, value, threshold, detriment);
@@ -35,19 +32,8 @@ public final class EffectBenefit extends Benefit{
         effectBenefits.addEffectBenefitUnique(this);
     }
 
-    public void onTick(Player player) {
-        if (!checkUsage() || player.level().isClientSide) {
-            return;
-        }
-
-        // Only refresh this effect when less than REAPPLY_DURATION ticks remaining
-        MobEffectInstance currentEffect = player.getEffect(effect);
-        if (currentEffect != null && currentEffect.getAmplifier() >= (int) value
-                && currentEffect.getDuration() > REAPPLY_DURATION) {
-            return;
-        }
-
-        player.addEffect(new MobEffectInstance(effect, DEFAULT_DURATION, (int) value, false, false));
+    Holder<MobEffect> effect() {
+        return checkUsage() ? effect : null;
     }
 
     @Override
