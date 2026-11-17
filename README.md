@@ -17,9 +17,16 @@ By default, Lime Pie rewards **maintaining a varied diet**. Your score reflects 
 - **Food value:** Contributions are weighted by hunger restored and saturation, so different foods can add different amounts to your score.
 - **Ongoing bonuses:** Reaching a score threshold grants its bonuses; falling below it removes them. Keep rotating foods to maintain your benefits.
 
-History length, decay, food weights, and bonuses are configurable. Read the comments in your world's `serverconfig/sollimepie-server.toml` for options and examples, or use the [configuration generator](https://lime-pie.hello-happy.world/).
-
 **Alongside Carrot Edition:** Carrot Edition rewards the total number of different foods you have tried, while Lime Pie's default rules reward variety in your recent diet. Their food tracking and bonuses are independent, so they are expected to coexist and their health bonuses to stack.
+
+## Configuration
+
+History length, decay, food weights, and bonuses are configurable. Read the comments in the gameplay config for options and examples, or use the [configuration generator](https://lime-pie.hello-happy.world/).
+
+- **Global gameplay config:** `config/sollimepie-server.toml` in the game instance or dedicated server root. Worlds in the same instance share this config by default.
+- **Per-world override:** Place a file with the same name in `<world>/serverconfig/` to customize one world. When present, this file takes precedence over the global gameplay config.
+- **Client display config:** `config/sollimepie-client.toml` controls tooltips and Food Book display options.
+- **Multiplayer:** Gameplay settings come from the server and are synchronized to clients. Edit the server's config to change them.
 
 ## Features
 
@@ -50,6 +57,8 @@ License: [LGPL-2.1](LICENSE.txt)
 
 **运行要求：** NeoForge 21.1.251+
 
+![青柠派版：食物手册、午餐袋、午餐盒与金午餐盒](https://raw.githubusercontent.com/JIAFALSEDREAM/Spice-of-Life-Lime-Pie-Edition/1.21.1/docs/images/overview-zh.webp)
+
 ### 多样性如何计算
 
 默认规则下，青柠派版鼓励**持续保持丰富的饮食**。分数取决于近期进食，增益随当前分数变化。
@@ -59,9 +68,16 @@ License: [LGPL-2.1](LICENSE.txt)
 - **食物价值：** 贡献按食物恢复的饥饿值和饱和度加权，不同食物提供的分数可能不同。
 - **持续增益：** 分数达到门槛时获得对应增益，跌破门槛则失去。想保持增益，就要持续轮换食物。
 
-记录长度、衰减规则、食物权重和增益均可配置，具体选项与示例请阅读世界目录下 `serverconfig/sollimepie-server.toml` 中的注释，也可使用[配置生成器](https://lime-pie.hello-happy.world/)。
-
 **与胡萝卜版搭配：** 胡萝卜版奖励累计尝试过的不同食物，青柠派版默认奖励近期饮食的多样性。两者独立记录进食、施加增益，因此预计可以同时安装并叠加生命值加成。
+
+### 配置
+
+记录长度、衰减规则、食物权重和增益均可配置，具体选项与示例请阅读玩法配置文件中的注释，也可使用[配置生成器](https://lime-pie.hello-happy.world/)。
+
+- **全局玩法配置：** 游戏实例或专用服务器根目录下的 `config/sollimepie-server.toml`，同一实例中的存档默认共用。
+- **单个存档覆盖：** 在 `<存档目录>/serverconfig/` 中放置同名文件，即可为该存档单独配置。存在该文件时，优先读取它，覆盖全局玩法配置。
+- **客户端显示配置：** `config/sollimepie-client.toml`，控制提示信息、食物手册等显示选项。
+- **多人联机：** 玩法配置以服务器为准，并同步给客户端；调整玩法时应修改服务器上的配置。
 
 ### 功能
 
@@ -69,3 +85,7 @@ License: [LGPL-2.1](LICENSE.txt)
 - **午餐袋 / 午餐盒 / 金午餐盒：** 储存食物，使用时自动选择最有助于提高多样性的食物。潜行使用可打开容器。
   默认也能存放空碗、玻璃瓶和食物手册，吃完后允许存放的残留物会留在容器内。
   可在服务端配置 `Miscellaneous.lunchboxExtraItems` 中填写物品 ID；设为空列表则只允许食物。
+
+![食物手册：饮食多样性、已食用的食物与生效的增益](https://raw.githubusercontent.com/JIAFALSEDREAM/Spice-of-Life-Lime-Pie-Edition/1.21.1/docs/images/food-book-zh.webp)
+
+![装有多种食物的金午餐盒](https://raw.githubusercontent.com/JIAFALSEDREAM/Spice-of-Life-Lime-Pie-Edition/1.21.1/docs/images/lunch-containers-zh.webp)
