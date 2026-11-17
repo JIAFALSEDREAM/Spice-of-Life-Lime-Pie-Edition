@@ -56,6 +56,7 @@ public final class SOLLimePie {
         event.register(HighLimitGameTests.class);
         event.register(LunchboxGameTests.class);
         event.register(ConfigReloadGameTests.class);
+        event.register(EffectBenefitsGameTests.class);
     }
 
     @SubscribeEvent
