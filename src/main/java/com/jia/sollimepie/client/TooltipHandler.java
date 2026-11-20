@@ -2,6 +2,7 @@ package com.jia.sollimepie.client;
 
 import com.jia.sollimepie.SOLLimePie;
 import com.jia.sollimepie.SOLLimePieConfig;
+import com.jia.sollimepie.item.foodcontainer.FoodContainerItem;
 import com.jia.sollimepie.tracking.FoodInstance;
 import com.jia.sollimepie.tracking.FoodList;
 import net.minecraft.ChatFormatting;
@@ -35,6 +36,9 @@ public final class TooltipHandler {
 		}
 
 		Item food = event.getItemStack().getItem();
+		if (food instanceof FoodContainerItem) {
+			return;
+		}
 		if (!new net.minecraft.world.item.ItemStack(food).has(net.minecraft.core.component.DataComponents.FOOD)) {
 		    return;
 		}
