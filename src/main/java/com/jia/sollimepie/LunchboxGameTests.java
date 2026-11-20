@@ -16,10 +16,12 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
+import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.network.connection.ConnectionType;
 
@@ -28,6 +30,38 @@ import java.util.Objects;
 
 @PrefixGameTestTemplate(false)
 public final class LunchboxGameTests {
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void foodContainersHandleTheirOwnRightClick(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var hand = InteractionHand.MAIN_HAND;
+        for (var item : List.of(SOLLimePieItems.LUNCHBAG.get(), SOLLimePieItems.LUNCHBOX.get(), SOLLimePieItems.GOLDEN_LUNCHBOX.get())) {
+            var box = new ItemStack(item);
+            player.getFoodData().setFoodLevel(5);
+            player.setItemInHand(hand, box);
+            player.setPose(Pose.CROUCHING);
+            helper.assertTrue(CommonHooks.onItemRightClick(player, hand) == InteractionResult.CONSUME && !player.isUsingItem(),
+                "Sneaking with a container did not select its open-menu action");
+
+            player.setPose(Pose.STANDING);
+            helper.assertTrue(CommonHooks.onItemRightClick(player, hand) == InteractionResult.PASS && !player.isUsingItem(),
+                "An empty container did not pass through to the other hand");
+
+            var inventory = Objects.requireNonNull(FoodContainerItem.getInventory(box));
+            inventory.setStackInSlot(0, new ItemStack(Items.APPLE, 2));
+            helper.assertTrue(CommonHooks.onItemRightClick(player, hand) == InteractionResult.CONSUME && player.isUsingItem(),
+                "A container with food did not start its meal");
+            box.finishUsingItem(helper.getLevel(), player);
+            helper.assertTrue(player.getFoodData().getFoodLevel() == 9 &&
+                    Objects.requireNonNull(FoodContainerItem.getInventory(box)).getStackInSlot(0).getCount() == 1,
+                "The right-click did not consume one apple from the container");
+            player.stopUsingItem();
+        }
+
+        player.setItemInHand(hand, new ItemStack(Items.STICK));
+        helper.assertTrue(CommonHooks.onItemRightClick(player, hand) == null, "A non-container right-click was intercepted");
+        helper.succeed();
+    }
+
     @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
     public static void defaultExtrasPersistInEveryContainer(GameTestHelper helper) {
         try (var ignored = new OptimizationGameTests.ConfigSnapshot()) {
