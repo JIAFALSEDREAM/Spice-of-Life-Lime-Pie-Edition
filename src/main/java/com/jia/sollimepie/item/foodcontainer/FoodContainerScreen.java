@@ -29,25 +29,9 @@ public class FoodContainerScreen extends AbstractContainerScreen<FoodContainer> 
     @Override
     protected void renderBg(GuiGraphics matrices, float partialTicks, int x, int y) {
         this.drawBackground(matrices, ResourceLocation.fromNamespaceAndPath(SOLLimePie.MOD_ID, "textures/gui/inventory.png"));
-        FoodContainerInventory h = FoodContainerItem.getInventory(this.menu.containerItem);
-        if (h != null) {
-            int slotsPerRow = h.getSlots();
-            if (h.getSlots() > 9) {
-                slotsPerRow = h.getSlots() / 2;
-            }
-            int xStart = (2*8 + 9*18 - slotsPerRow * 18) / 2;
-            int yStart = 17 + 18;
-            if (h.getSlots() > 9) {
-                yStart = 17 + (84-36-23)/2;
-            }
-            for (int i = 0; i < h.getSlots(); i++) {
-                int row = i / slotsPerRow;
-                int col = i % slotsPerRow;
-                int xPos = xStart - 1 + col * 18;
-                int yPos = yStart - 1 + row * 18;
-
-                this.drawSlot(matrices, xPos, yPos);
-          }
+        for (int i = 0; i < this.menu.getStorageSlotCount(); i++) {
+            var slot = this.menu.getSlot(i);
+            this.drawSlot(matrices, slot.x - 1, slot.y - 1);
         }
     }
 

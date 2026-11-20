@@ -6,62 +6,50 @@
 package com.jia.sollimepie.item.foodcontainer;
 
 import com.jia.sollimepie.client.ContainerScreenRegistry;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 
 public class FoodContainer extends AbstractContainerMenu {
     public static final int PLAYERSIZE = 4 * 9;
 
-    public ItemStack containerItem;
-    public int nslots;
-
+    private final int nslots;
     private final Inventory playerInventory;
 
-    public FoodContainer(int id, Inventory playerInventory, Player player) {
+    public static FoodContainer createClientMenu(int id, Inventory playerInventory, RegistryFriendlyByteBuf data) {
+        if (data == null) {
+            throw new IllegalArgumentException("Missing food container menu data");
+        }
+        int capacity = data.readVarInt();
+        // Match the maximum size of vanilla ItemContainerContents.
+        if (capacity < 1 || capacity > 256) {
+            throw new IllegalArgumentException("Invalid food container capacity: " + capacity);
+        }
+        return new FoodContainer(id, playerInventory, new ItemStackHandler(capacity));
+    }
+
+    FoodContainer(int id, Inventory playerInventory, ItemStackHandler storage) {
         super(ContainerScreenRegistry.FOOD_CONTAINER.get(), id);
-
-        // When we hit the hotkey to open a food container, check held items first
-        if (player.getMainHandItem().getItem() instanceof FoodContainerItem) {
-            containerItem = player.getMainHandItem();
-        }
-        else if (player.getOffhandItem().getItem() instanceof FoodContainerItem) {
-            containerItem = player.getOffhandItem();
-        }
-        else {
-            for (ItemStack stack : playerInventory.items) {
-                if (stack.getItem() instanceof FoodContainerItem) {
-                    containerItem = stack;
-                    break;
-                }
-            }
-        }
-
         this.playerInventory = playerInventory;
-        FoodContainerInventory h = FoodContainerItem.getInventory(containerItem);
-        if (h != null) {
-            nslots = h.getSlots();
-            int slotsPerRow = h.getSlots();
-            if (h.getSlots() > 9) {
-                slotsPerRow = h.getSlots() / 2;
-            }
-            int xStart = (2*8 + 9*18 - slotsPerRow * 18) / 2;
-            int yStart = 17 + 18;
-            if (h.getSlots() > 9) {
-                yStart = 17 + (84-36-23)/2;
-            }
-            for (int j = 0; j < h.getSlots(); j++) {
-                int row = j / slotsPerRow;
-                int col = j % slotsPerRow;
-                int xPos = xStart + col * 18;
-                int yPos = yStart + row * 18;
-                this.addSlot(new FoodSlot(h, j, xPos, yPos));
-            }
+        nslots = storage.getSlots();
+        int slotsPerRow = nslots > 9 ? nslots / 2 : nslots;
+        int xStart = (2 * 8 + 9 * 18 - slotsPerRow * 18) / 2;
+        int yStart = nslots > 9 ? 17 + (84 - 36 - 23) / 2 : 17 + 18;
+        for (int slot = 0; slot < nslots; slot++) {
+            int xPos = xStart + slot % slotsPerRow * 18;
+            int yPos = yStart + slot / slotsPerRow * 18;
+            this.addSlot(new FoodSlot(storage, slot, xPos, yPos));
         }
 
         layoutPlayerInventorySlots(8, 84);
+    }
+
+    public int getStorageSlotCount() {
+        return nslots;
     }
 
     @Override

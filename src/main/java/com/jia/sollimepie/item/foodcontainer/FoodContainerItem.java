@@ -34,7 +34,7 @@ public class FoodContainerItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
         if (player.isCrouching()) {
             if (player instanceof ServerPlayer serverPlayer) {
-                serverPlayer.openMenu(new FoodContainerProvider(displayName));
+                serverPlayer.openMenu(new FoodContainerProvider(displayName, stack));
             }
             return InteractionResultHolder.sidedSuccess(stack, world.isClientSide);
         }

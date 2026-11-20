@@ -11,5 +11,5 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class ContainerScreenRegistry {
     public static final DeferredRegister<MenuType<?>> MENU_TYPES = DeferredRegister.create(BuiltInRegistries.MENU, SOLLimePie.MOD_ID);
     public static final DeferredHolder<MenuType<?>, MenuType<FoodContainer>> FOOD_CONTAINER =
-        MENU_TYPES.register("food_container", () -> IMenuTypeExtension.create((id, inventory, data) -> new FoodContainer(id, inventory, inventory.player)));
+        MENU_TYPES.register("food_container", () -> IMenuTypeExtension.create(FoodContainer::createClientMenu));
 }

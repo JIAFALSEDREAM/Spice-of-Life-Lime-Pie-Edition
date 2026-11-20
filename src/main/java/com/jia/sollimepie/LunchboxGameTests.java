@@ -1,11 +1,15 @@
 package com.jia.sollimepie;
 
+import com.jia.sollimepie.client.ContainerScreenRegistry;
 import com.jia.sollimepie.item.SOLLimePieItems;
 import com.jia.sollimepie.item.foodcontainer.FoodContainer;
 import com.jia.sollimepie.item.foodcontainer.FoodContainerItem;
+import com.jia.sollimepie.item.foodcontainer.FoodContainerProvider;
 import com.jia.sollimepie.item.foodcontainer.FoodSlot;
+import io.netty.buffer.Unpooled;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
@@ -13,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.neoforged.neoforge.network.connection.ConnectionType;
 
 import java.util.List;
 import java.util.Objects;
@@ -96,15 +101,51 @@ public final class LunchboxGameTests {
             SOLLimePieConfig.SERVER.lunchboxExtraItems.set(List.of("minecraft:bowl"));
             var player = helper.makeMockPlayer(GameType.SURVIVAL);
             var bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
-            player.setItemInHand(InteractionHand.MAIN_HAND, bag);
+            player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SOLLimePieItems.LUNCHBOX.get()));
+            player.setItemInHand(InteractionHand.OFF_HAND, bag);
             player.getInventory().setItem(9, new ItemStack(Items.BOWL, 3));
-            var menu = new FoodContainer(1, player.getInventory(), player);
-            helper.assertTrue(menu.quickMoveStack(player, menu.nslots).is(Items.BOWL), "Shift insertion failed");
+            var provider = new FoodContainerProvider("lunchbag", player.getItemInHand(InteractionHand.OFF_HAND));
+            var menu = Objects.requireNonNull(provider.createMenu(1, player.getInventory(), player));
+            helper.assertTrue(menu.getStorageSlotCount() == 5, "Menu selected the container from the other hand");
+            helper.assertTrue(menu.quickMoveStack(player, menu.getStorageSlotCount()).is(Items.BOWL), "Shift insertion failed");
             helper.assertTrue(Objects.requireNonNull(FoodContainerItem.getInventory(bag)).getStackInSlot(0).getCount() == 3,
                 "Shift insertion did not persist");
             SOLLimePieConfig.SERVER.lunchboxExtraItems.set(List.of());
             helper.assertTrue(menu.quickMoveStack(player, 0).is(Items.BOWL), "Removed extra could not be shift-extracted");
-            helper.assertTrue(menu.quickMoveStack(player, menu.nslots).isEmpty(), "Removed extra could be shift-inserted");
+            helper.assertTrue(menu.quickMoveStack(player, menu.getStorageSlotCount()).isEmpty(), "Removed extra could be shift-inserted");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void menuUsesServerCapacityAfterHotbarSwitch(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var golden = new ItemStack(SOLLimePieItems.GOLDEN_LUNCHBOX.get());
+        var lunchbox = new ItemStack(SOLLimePieItems.LUNCHBOX.get());
+        Objects.requireNonNull(FoodContainerItem.getInventory(golden)).setStackInSlot(13, new ItemStack(Items.APPLE));
+        player.getInventory().setItem(0, golden);
+        player.getInventory().setItem(1, lunchbox);
+        var provider = new FoodContainerProvider("golden_lunchbox", player.getItemInHand(InteractionHand.MAIN_HAND));
+        var serverMenu = Objects.requireNonNull(provider.createMenu(1, player.getInventory(), player));
+
+        var viewer = helper.makeMockPlayer(GameType.SURVIVAL);
+        viewer.getInventory().setItem(0, golden.copy());
+        viewer.getInventory().setItem(1, lunchbox.copy());
+        viewer.getInventory().selected = 1;
+
+        var data = new RegistryFriendlyByteBuf(Unpooled.buffer(), helper.getLevel().registryAccess(), ConnectionType.NEOFORGE);
+        try {
+            provider.writeClientSideData(serverMenu, data);
+            var clientMenu = ContainerScreenRegistry.FOOD_CONTAINER.get().create(1, viewer.getInventory(), data);
+            clientMenu.initializeContents(0, serverMenu.getItems().stream().map(ItemStack::copy).toList(), ItemStack.EMPTY);
+            helper.assertTrue(clientMenu.getStorageSlotCount() == 14 && clientMenu.slots.size() == 14 + FoodContainer.PLAYERSIZE,
+                "Client menu did not use the server's slot layout");
+            helper.assertTrue(clientMenu.getSlot(13).getItem().is(Items.APPLE), "Client did not sync the last slot");
+            clientMenu.getSlot(13).set(new ItemStack(Items.BREAD));
+            var viewerGolden = Objects.requireNonNull(FoodContainerItem.getInventory(viewer.getInventory().getItem(0)));
+            helper.assertTrue(viewerGolden.getStackInSlot(13).is(Items.APPLE), "Client menu changed the local container item");
+        } finally {
+            data.release();
         }
         helper.succeed();
     }
