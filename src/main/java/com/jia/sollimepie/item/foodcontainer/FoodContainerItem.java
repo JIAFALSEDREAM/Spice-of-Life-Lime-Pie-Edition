@@ -1,5 +1,6 @@
 package com.jia.sollimepie.item.foodcontainer;
 
+import com.jia.sollimepie.SOLLimePie;
 import com.jia.sollimepie.tracking.FoodList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
@@ -11,12 +12,17 @@ import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import javax.annotation.Nullable;
 
+@EventBusSubscriber(modid = SOLLimePie.MOD_ID)
 public class FoodContainerItem extends Item {
     private final String displayName;
     private final int nslots;
@@ -28,6 +34,17 @@ public class FoodContainerItem extends Item {
     }
 
     public int getSlotCount() { return nslots; }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+        ItemStack stack = event.getItemStack();
+        if (stack.getItem() instanceof FoodContainerItem) {
+            // Let the container open or select a meal before generic food handlers start item use.
+            var result = stack.use(event.getLevel(), event.getEntity(), event.getHand());
+            event.setCancellationResult(result.getResult());
+            event.setCanceled(true);
+        }
+    }
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
