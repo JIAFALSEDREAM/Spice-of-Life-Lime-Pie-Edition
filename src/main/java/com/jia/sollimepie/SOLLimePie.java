@@ -45,8 +45,8 @@ public final class SOLLimePie {
 
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        // Version 2 requires the server to send the food container's menu capacity.
-        var registrar = event.registrar("2");
+        // Version 3 also synchronizes the accepted duration of a food container meal.
+        var registrar = event.registrar("3");
         registrar.playToClient(FoodListMessage.TYPE, FoodListMessage.STREAM_CODEC, FoodListMessage::handle);
         registrar.playToClient(ConfigMessage.TYPE, ConfigMessage.STREAM_CODEC, ConfigMessage::handle);
         registrar.playToClient(FoodContainerMealMessage.TYPE, FoodContainerMealMessage.STREAM_CODEC, FoodContainerMealMessage::handle);
