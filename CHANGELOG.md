@@ -1,9 +1,17 @@
 # 3.3.0 — NeoForge 1.21.1
 
+Update both clients and servers to 3.3.0 for multiplayer. This release changes the network protocol for lunch container menus.
+
 - Added administrator chat feedback for gameplay configuration hot reloads, including the active global or world scope.
 - Added `/sollimepie reload` and integrated gameplay configuration reloads with vanilla `/reload`; both reread the active file from disk.
 - Deduplicated automatic reload notifications and distinguished successful reloads, skipped/corrected entries, and failures.
 - Added early validation for invalid benefit IDs and non-finite food weights, with regression GameTests.
+- Optimized renewal of persistent potion effect rewards and preserved stronger or infinite effects from other sources.
+- Silently skipped unavailable foods from the built-in Farmers' Delight and Farmer's Respite presets.
+- Hid the dietary diversity tooltip on lunch containers.
+- Fixed disconnects when switching hotbar items as a lunch container menu opens by synchronizing its slot count with the server.
+- Showed eating particles for the food selected from the lunch container.
+- Documented global, per-world, and client configuration in the README and added Simplified Chinese screenshots.
 
 # 3.2.1 — NeoForge 1.21.1
 
