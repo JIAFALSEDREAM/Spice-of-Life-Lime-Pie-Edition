@@ -1,15 +1,19 @@
 package com.jia.sollimepie;
 
 import com.jia.sollimepie.client.ContainerScreenRegistry;
+import com.jia.sollimepie.communication.FoodContainerMealMessage;
 import com.jia.sollimepie.item.SOLLimePieItems;
 import com.jia.sollimepie.item.foodcontainer.FoodContainer;
 import com.jia.sollimepie.item.foodcontainer.FoodContainerItem;
 import com.jia.sollimepie.item.foodcontainer.FoodContainerProvider;
+import com.jia.sollimepie.item.foodcontainer.FoodContainerUse;
 import com.jia.sollimepie.item.foodcontainer.FoodSlot;
 import io.netty.buffer.Unpooled;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
@@ -162,6 +166,8 @@ public final class LunchboxGameTests {
                 var bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
                 Objects.requireNonNull(FoodContainerItem.getInventory(bag)).insertItem(0, new ItemStack(food), false);
                 player.getFoodData().setFoodLevel(5);
+                player.setItemInHand(InteractionHand.OFF_HAND, bag);
+                bag.use(helper.getLevel(), player, InteractionHand.OFF_HAND);
                 bag.finishUsingItem(helper.getLevel(), player);
                 Item remainder = food == Items.HONEY_BOTTLE ? Items.GLASS_BOTTLE : Items.BOWL;
                 helper.assertTrue(Objects.requireNonNull(FoodContainerItem.getInventory(bag)).getStackInSlot(0).is(remainder),
@@ -172,10 +178,131 @@ public final class LunchboxGameTests {
             var player = helper.makeMockPlayer(GameType.SURVIVAL);
             var bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
             Objects.requireNonNull(FoodContainerItem.getInventory(bag)).insertItem(0, new ItemStack(Items.BEETROOT_SOUP), false);
+            player.getFoodData().setFoodLevel(5);
+            player.setItemInHand(InteractionHand.MAIN_HAND, bag);
+            bag.use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
             bag.finishUsingItem(helper.getLevel(), player);
             helper.assertTrue(Objects.requireNonNull(FoodContainerItem.getInventory(bag)).getStackInSlot(0).isEmpty(),
                 "Disallowed remainder stayed inside");
             helper.assertTrue(player.getInventory().contains(new ItemStack(Items.BOWL)), "Disallowed remainder was lost");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void mealSelectionSurvivesRepeatUseAndRejectsReplacement(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
+        var hand = InteractionHand.MAIN_HAND;
+        player.getFoodData().setFoodLevel(5);
+        player.setItemInHand(hand, bag);
+        Objects.requireNonNull(FoodContainerItem.getInventory(bag)).setStackInSlot(1, new ItemStack(Items.BREAD));
+
+        bag.use(helper.getLevel(), player, hand);
+        helper.assertTrue(player.isUsingItem(), "Starting use did not start a meal");
+
+        var inventory = Objects.requireNonNull(FoodContainerItem.getInventory(bag));
+        inventory.setStackInSlot(1, ItemStack.EMPTY);
+        inventory.setStackInSlot(0, new ItemStack(Items.APPLE, 2));
+        bag.use(helper.getLevel(), player, hand);
+        bag.finishUsingItem(helper.getLevel(), player);
+        helper.assertTrue(player.getFoodData().getFoodLevel() == 5, "Repeated use substituted food from another slot");
+        player.releaseUsingItem();
+
+        bag.use(helper.getLevel(), player, hand);
+        var renamedApple = new ItemStack(Items.APPLE, 2);
+        renamedApple.set(DataComponents.CUSTOM_NAME, Component.literal("Replacement"));
+        Objects.requireNonNull(FoodContainerItem.getInventory(bag)).setStackInSlot(0, renamedApple);
+        bag.finishUsingItem(helper.getLevel(), player);
+        var retained = Objects.requireNonNull(FoodContainerItem.getInventory(bag)).getStackInSlot(0);
+        helper.assertTrue(player.getFoodData().getFoodLevel() == 5 && ItemStack.matches(retained, renamedApple),
+            "Replacing the selected food with changed components still allowed consumption");
+        player.releaseUsingItem();
+
+        bag.use(helper.getLevel(), player, hand);
+        var replacement = bag.copy();
+        player.setItemInHand(hand, replacement);
+        bag.finishUsingItem(helper.getLevel(), player);
+        helper.assertTrue(player.getFoodData().getFoodLevel() == 5, "Replacing the container still allowed consumption");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void mealAppearanceTracksAttemptAcrossInventorySync(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
+        var hand = InteractionHand.MAIN_HAND;
+        player.setItemInHand(hand, bag);
+
+        FoodContainerUse.rememberRequest(player, hand, bag, 10);
+        FoodContainerUse.rememberRequest(player, hand, bag, 11);
+        var bread = new ItemStack(Items.BREAD);
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 10, hand, bread));
+        helper.assertTrue(FoodContainerUse.particleFood(player).isEmpty(), "Confirmation produced particles before use started");
+        player.startUsingItem(hand);
+        helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.BREAD), "Repeated input discarded the first accepted request");
+
+        var syncedBag = bag.copy();
+        player.setItemInHand(hand, syncedBag);
+        syncedBag.onUseTick(helper.getLevel(), player, 20);
+        helper.assertTrue(player.isUsingItem() && FoodContainerUse.particleFood(player).is(Items.BREAD),
+            "A same-slot inventory update stopped the animation or changed the food appearance");
+        FoodContainerUse.rememberRequest(player, hand, syncedBag, 12);
+        FoodContainerUse.acknowledgeRequests(player, 11);
+        player.stopUsingItem();
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 11, hand, bread));
+        player.startUsingItem(hand);
+        helper.assertTrue(FoodContainerUse.particleFood(player).isEmpty(), "An old confirmation changed the new meal's appearance");
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 12, hand, new ItemStack(Items.CARROT)));
+        helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.CARROT), "A stop for the previous animation cleared the pending request");
+
+        FoodContainerUse.rememberRequest(player, hand, syncedBag, 13);
+        FoodContainerUse.cancelRequests(player, null);
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 13, hand, bread));
+        helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.CARROT), "A canceled request changed the meal appearance");
+
+        player.getInventory().setItem(1, syncedBag.copy());
+        player.getInventory().selected = 1;
+        syncedBag.onUseTick(helper.getLevel(), player, 20);
+        helper.assertTrue(!player.isUsingItem() && FoodContainerUse.particleFood(player).isEmpty(),
+            "Switching to another hotbar slot kept the previous meal active");
+
+        var offHand = InteractionHand.OFF_HAND;
+        player.setItemInHand(offHand, syncedBag.copy());
+        FoodContainerUse.rememberRequest(player, hand, player.getMainHandItem(), 14);
+        FoodContainerUse.rememberRequest(player, offHand, player.getOffhandItem(), 15);
+        player.getInventory().selected = 0;
+        FoodContainerUse.cancelRequests(player, hand);
+        player.getInventory().selected = 1;
+        player.startUsingItem(hand);
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 14, hand, bread));
+        helper.assertTrue(FoodContainerUse.particleFood(player).isEmpty(), "Returning to the slot restored a canceled request");
+        player.stopUsingItem();
+        player.startUsingItem(offHand);
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 15, offHand, bread));
+        helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.BREAD), "Changing hotbar slots canceled an off-hand request");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void observersSeeOnlyTheCurrentMealAppearance(GameTestHelper helper) {
+        var observer = helper.makeMockPlayer(GameType.SURVIVAL);
+        var eater = helper.makeMockPlayer(GameType.SURVIVAL);
+        var hand = InteractionHand.MAIN_HAND;
+        eater.setItemInHand(hand, new ItemStack(SOLLimePieItems.LUNCHBAG.get()));
+        helper.assertTrue(helper.getLevel().addFreshEntity(eater), "Could not add the observed player");
+        try {
+            eater.startUsingItem(hand);
+            var message = new FoodContainerMealMessage(eater.getId(), 10, hand, new ItemStack(Items.APPLE));
+            FoodContainerUse.acceptAppearance(observer, message);
+            helper.assertTrue(FoodContainerUse.particleFood(eater).is(Items.APPLE), "A newly observing player did not get the current food");
+            helper.assertTrue(FoodContainerUse.particleFood(observer).isEmpty(), "Remote food was applied to the observing player");
+
+            eater.stopUsingItem();
+            eater.startUsingItem(hand);
+            helper.assertTrue(FoodContainerUse.particleFood(eater).isEmpty(), "A new animation restored the previous observed food");
+        } finally {
+            eater.discard();
         }
         helper.succeed();
     }

@@ -2,6 +2,7 @@ package com.jia.sollimepie;
 
 import com.jia.sollimepie.client.ContainerScreenRegistry;
 import com.jia.sollimepie.communication.ConfigMessage;
+import com.jia.sollimepie.communication.FoodContainerMealMessage;
 import com.jia.sollimepie.communication.FoodListMessage;
 import com.jia.sollimepie.item.SOLLimePieItems;
 import com.jia.sollimepie.item.SOLLimePieCreativeTabs;
@@ -48,6 +49,7 @@ public final class SOLLimePie {
         var registrar = event.registrar("2");
         registrar.playToClient(FoodListMessage.TYPE, FoodListMessage.STREAM_CODEC, FoodListMessage::handle);
         registrar.playToClient(ConfigMessage.TYPE, ConfigMessage.STREAM_CODEC, ConfigMessage::handle);
+        registrar.playToClient(FoodContainerMealMessage.TYPE, FoodContainerMealMessage.STREAM_CODEC, FoodContainerMealMessage::handle);
     }
 
     @SubscribeEvent

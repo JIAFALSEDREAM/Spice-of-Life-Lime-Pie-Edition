@@ -3,6 +3,7 @@ package com.jia.sollimepie.tracking;
 import com.jia.sollimepie.SOLLimePie;
 import com.jia.sollimepie.SOLLimePieConfig;
 import com.jia.sollimepie.communication.FoodListMessage;
+import com.jia.sollimepie.item.foodcontainer.FoodContainerUse;
 import com.jia.sollimepie.tracking.benefits.BenefitsHandler;
 import com.jia.sollimepie.tracking.benefits.EffectBenefitsCapability;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,6 +25,8 @@ public final class CapabilityHandler {
         ATTACHMENTS.register("food", () -> AttachmentType.serializable(FoodList::new).build());
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<EffectBenefitsCapability>> EFFECT_BENEFITS =
         ATTACHMENTS.register("effect_benefits", () -> AttachmentType.serializable(EffectBenefitsCapability::new).build());
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<FoodContainerUse>> FOOD_CONTAINER_USE =
+        ATTACHMENTS.register("food_container_use", () -> AttachmentType.builder(FoodContainerUse::new).build());
 
     @SubscribeEvent
     public static void onPlayerDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {

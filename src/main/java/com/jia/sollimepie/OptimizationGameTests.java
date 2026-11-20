@@ -10,17 +10,21 @@ import com.jia.sollimepie.tracking.benefits.BenefitsHandler;
 import com.jia.sollimepie.tracking.benefits.EffectBenefitsCapability;
 import com.jia.sollimepie.communication.FoodListMessage;
 import com.jia.sollimepie.communication.ConfigMessage;
+import com.jia.sollimepie.communication.FoodContainerMealMessage;
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
 import net.minecraft.network.Connection;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
@@ -101,9 +105,10 @@ public final class OptimizationGameTests {
         var player = new ServerPlayer(helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation());
         var connection = new Connection(PacketFlow.SERVERBOUND);
         var channel = new EmbeddedChannel(connection);
-        // The embedded connection has no client handshake; advertise this mod's two play payloads before login.
+        // The embedded connection has no client handshake; advertise this mod's play payloads before login.
         ChannelAttributes.getOrCreateAdHocChannels(connection).add(FoodListMessage.TYPE.id());
         ChannelAttributes.getOrCreateAdHocChannels(connection).add(ConfigMessage.TYPE.id());
+        ChannelAttributes.getOrCreateAdHocChannels(connection).add(FoodContainerMealMessage.TYPE.id());
         helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
         player.setGameMode(GameType.SURVIVAL);
         try {
@@ -113,7 +118,19 @@ public final class OptimizationGameTests {
             ItemStack bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
             var inventory = Objects.requireNonNull(FoodContainerItem.getInventory(bag));
             inventory.setStackInSlot(0, new ItemStack(Items.BREAD, 3));
-            bag.finishUsingItem(helper.getLevel(), player);
+            player.setItemInHand(InteractionHand.MAIN_HAND, bag);
+            player.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 24, 0, 0));
+            player.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 25, 0, 0));
+            channel.runPendingTasks();
+            var confirmations = channel.outboundMessages().stream()
+                .filter(ClientboundCustomPayloadPacket.class::isInstance).map(ClientboundCustomPayloadPacket.class::cast)
+                .map(ClientboundCustomPayloadPacket::payload)
+                .filter(FoodContainerMealMessage.class::isInstance).map(FoodContainerMealMessage.class::cast).toList();
+            helper.assertTrue(confirmations.size() == 1 && confirmations.getFirst().sequence() == 24
+                && confirmations.getFirst().food().is(Items.BREAD), "Use did not send exactly one confirmation for the first request");
+            for (int tick = 0; tick < bag.getUseDuration(player); tick++) {
+                player.doTick();
+            }
             helper.assertTrue(player.getFoodData().getFoodLevel() == 10, "Lunchbag did not feed the player");
             helper.assertTrue(FoodList.get(player).hasEaten(Items.BREAD) && FoodList.get(player).getFoodsEaten() == 1,
                 "Consumption was not tracked exactly once");

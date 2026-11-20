@@ -9,6 +9,8 @@ logoFile="logo 160.png"
 authors="JIA"
 credits="Original Apple Pie Edition by Vice; Potato Edition by Kevun1; Carrot Edition by Cazsius and contributors."
 description='''Track food diversity and earn configurable benefits. NeoForge 1.21.1 port of Spice of Life: Apple Pie Edition.'''
+[[mixins]]
+config="sollimepie.mixins.json"
 [[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"

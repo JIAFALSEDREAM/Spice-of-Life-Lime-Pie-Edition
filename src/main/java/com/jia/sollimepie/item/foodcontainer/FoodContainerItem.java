@@ -32,6 +32,9 @@ public class FoodContainerItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (player.isUsingItem()) {
+            return InteractionResultHolder.consume(stack);
+        }
         if (player.isCrouching()) {
             if (player instanceof ServerPlayer serverPlayer) {
                 serverPlayer.openMenu(new FoodContainerProvider(displayName, stack));
@@ -40,28 +43,38 @@ public class FoodContainerItem extends Item {
         }
         // Disabled: the legacy Origins API does not exist in the tested 1.21.1 NeoForge ports.
         // if (ModList.get().isLoaded("origins") && Origins.hasRestrictedDiet(player)) return InteractionResultHolder.pass(stack);
-        if (isInventoryEmpty(stack)) {
+        var inventory = new FoodContainerInventory(stack, nslots);
+        boolean canEat = player.canEat(false);
+        int slot = canEat ? getBestFoodSlot(inventory, player) : findFirstFoodSlot(inventory);
+        if (slot < 0) {
             return InteractionResultHolder.pass(stack);
         }
-        if (!player.canEat(false)) {
+        if (!canEat) {
             return InteractionResultHolder.fail(stack);
         }
         player.startUsingItem(hand);
+        if (player.isUsingItem() && player.getUseItem() == stack) {
+            ItemStack food = inventory.getStackInSlot(slot);
+            if (world.isClientSide) {
+                FoodContainerUse.predict(player, hand, stack, food);
+            } else {
+                FoodContainerUse.startServerMeal(player, hand, stack, slot, food);
+            }
+        }
         return InteractionResultHolder.consume(stack);
     }
 
-    private static boolean isInventoryEmpty(ItemStack container) {
-        ItemStackHandler handler = getInventory(container);
-        if (handler == null) {
-            return true;
-        }
-        for (int i = 0; i < handler.getSlots(); i++) {
-            ItemStack stack = handler.getStackInSlot(i);
-            if (!stack.isEmpty() && stack.has(DataComponents.FOOD)) {
-                return false;
+    private static int findFirstFoodSlot(ItemStackHandler inventory) {
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            if (isFood(inventory.getStackInSlot(slot))) {
+                return slot;
             }
         }
-        return true;
+        return -1;
+    }
+
+    private static boolean isFood(ItemStack stack) {
+        return !stack.isEmpty() && stack.has(DataComponents.FOOD);
     }
 
     @Nullable
@@ -74,19 +87,21 @@ public class FoodContainerItem extends Item {
 
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level world, LivingEntity entity) {
-        if (!(entity instanceof Player player)) {
+        if (world.isClientSide || !(entity instanceof Player player)) {
             return stack;
         }
-        FoodContainerInventory handler = getInventory(stack);
-        if (handler == null) {
-            return stack;
-        }
-        int slot = getBestFoodSlot(handler, player);
-        if (slot < 0) {
+        var meal = FoodContainerUse.takeMeal(player);
+        if (meal == null || meal.container() != stack || !meal.isActive(player)) {
             return stack;
         }
 
+        var handler = new FoodContainerInventory(stack, nslots);
+        int slot = meal.slot();
         ItemStack food = handler.getStackInSlot(slot);
+        if (food.isEmpty() || !ItemStack.isSameItemSameComponents(food, meal.food())) {
+            return stack;
+        }
+
         ItemStack before = food.copy();
         ItemStack result = food.finishUsingItem(world, entity);
         if (!result.isEmpty() && !FoodSlot.canHold(result)) {
@@ -97,10 +112,15 @@ public class FoodContainerItem extends Item {
         } else {
             handler.setStackInSlot(slot, result);
         }
-        if (!world.isClientSide) {
-            NeoForge.EVENT_BUS.post(new LivingEntityUseItemEvent.Finish(player, before, 0, result));
-        }
+        NeoForge.EVENT_BUS.post(new LivingEntityUseItemEvent.Finish(player, before, 0, result));
         return stack;
+    }
+
+    @Override
+    public void onUseTick(Level level, LivingEntity entity, ItemStack stack, int remainingTicks) {
+        if (entity instanceof Player player && FoodContainerUse.changedContainer(player)) {
+            player.stopUsingItem();
+        }
     }
 
     @Override
@@ -113,7 +133,7 @@ public class FoodContainerItem extends Item {
         int bestSlot = -1;
         for (int i = 0; i < handler.getSlots(); i++) {
             ItemStack food = handler.getStackInSlot(i);
-            if (food.isEmpty() || !food.has(DataComponents.FOOD)) {
+            if (!isFood(food)) {
                 continue;
             }
             double change = simulator.applyAsDouble(food.getItem());
