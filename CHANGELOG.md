@@ -1,3 +1,11 @@
+# 3.3.1 — NeoForge 1.21.1
+
+Update both clients and servers to 3.3.1 for multiplayer. The server now synchronizes the selected food's eating time.
+
+- Fixed opening and eating from lunch containers with Always Eat installed.
+- Lunch containers now use the selected food's eating time.
+- In first person, lunch containers briefly lower and show the selected food as it is raised to eat.
+
 # 3.3.0 — NeoForge 1.21.1
 
 Update both clients and servers to 3.3.0 for multiplayer. This release changes the network protocol for lunch container menus.
