@@ -136,6 +136,22 @@ public final class SOLLimePieConfig
 	}
 
 	public static class Server {
+		// The web config generator extracts this class to capture the same defaults as the mod.
+		public static final List<String> OPTIONAL_COMPLEXITY_PRESETS = List.of(
+				"farmersrespite:green_tea,3",
+				"farmersrespite:yellow_tea,3",
+				"farmersrespite:coffee,3",
+				"farmersrespite:black_tea,3",
+				"farmersrespite:rose_hip_tea,3",
+				"farmersrespite:dandelion_tea,3",
+				"farmersrespite:rose_hip_pie_slice,4",
+				"farmersrespite:coffee_cake_slice,4",
+				"farmersrespite:blazing_chili,5",
+				"farmersdelight:cake_slice,4",
+				"farmersdelight:chocolate_pie_slice,4",
+				"farmersdelight:apple_pie_slice,4",
+				"farmersdelight:sweet_berry_cheesecake_slice,4");
+
 		public final ConfigValue<List<? extends String>> blacklist;
 		public final ConfigValue<List<? extends String>> whitelist;
 		public final ConfigValue<List<? extends String>> lunchboxExtraItems;
@@ -351,6 +367,13 @@ public final class SOLLimePieConfig
 			builder.pop();
 			builder.push("Complexity");
 
+			List<String> defaultComplexity = Lists.newArrayList(
+					"minecraft:cooked_porkchop,2",
+					"minecraft:cooked_beef,2",
+					"minecraft:golden_carrot,2",
+					"minecraft:golden_apple,4",
+					"minecraft:enchanted_golden_apple,10");
+			defaultComplexity.addAll(OPTIONAL_COMPLEXITY_PRESETS);
 			complexityUnparsed = builder
 					.translation(localizationPath("complexity_unparsed"))
 					.comment(" Define custom complexity values for individual foods here.\n"
@@ -360,38 +383,10 @@ public final class SOLLimePieConfig
 							+" Note that tags are NOT currently supported.\n"
 							+" Example: [\"minecraft:bread,2.5\", \"minecraft:golden_apple,8\"]. These are fresh, full weights;\n"
 							+" decay still multiplies them when enabled. Use finite, nonnegative values, exact IDs and no spaces.\n"
-							+" Unknown or non-food items are skipped with a log warning. Remove an entry to restore its calculated weight.\n"
+							+" Missing items in the built-in compatibility presets are skipped quietly.\n"
+							+" Other unknown items and non-food items produce a log warning. Remove an entry to restore its calculated weight.\n"
 							+"\n")
-					.defineListAllowEmpty("complexityUnparsed", Lists.newArrayList(
-									"minecraft:cooked_porkchop,2",
-									"minecraft:cooked_beef,2",
-									"minecraft:golden_carrot,2",
-									"minecraft:golden_apple,4",
-									"minecraft:enchanted_golden_apple,10",
-
-										// Disabled: the 1.21.1 port uses the different namespace "large_meals".
-										// "largemeals:sweet_berry_custard,5",
-										// "largemeals:pufferfish_broth,5",
-										// "largemeals:mushroom_pot_pie,5",
-										// "largemeals:hearty_lunch,6",
-
-									"farmersrespite:green_tea,3",
-									"farmersrespite:yellow_tea,3",
-									"farmersrespite:coffee,3",
-									"farmersrespite:black_tea,3",
-									"farmersrespite:rose_hip_tea,3",
-									"farmersrespite:dandelion_tea,3",
-									"farmersrespite:black_tea,3",
-
-									"farmersrespite:rose_hip_pie_slice,4",
-									"farmersrespite:coffee_cake_slice,4",
-									"farmersrespite:blazing_chili,5",
-
-									"farmersdelight:cake_slice,4",
-									"farmersdelight:chocolate_pie_slice,4",
-									"farmersdelight:apple_pie_slice,4",
-									"farmersdelight:sweet_berry_cheesecake_slice,4"),
-							() -> "", e -> e instanceof String);
+					.defineListAllowEmpty("complexityUnparsed", defaultComplexity, () -> "", e -> e instanceof String);
 
 			builder.pop();
 		}

@@ -1,6 +1,7 @@
 package com.jia.sollimepie.utils;
 
 import com.jia.sollimepie.SOLLimePie;
+import com.jia.sollimepie.SOLLimePieConfig;
 import com.jia.sollimepie.tracking.FoodInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.ResourceLocationException;
@@ -50,7 +51,9 @@ public class ComplexityParser {
                 continue;
             }
             if (!BuiltInRegistries.ITEM.containsKey(itemId)) {
-                warnings.accept("Unknown registered item: " + foodString);
+                if (!SOLLimePieConfig.Server.OPTIONAL_COMPLEXITY_PRESETS.contains(complexityString)) {
+                    warnings.accept("Unknown registered item: " + foodString);
+                }
                 continue;
             }
             Item item = BuiltInRegistries.ITEM.get(itemId);

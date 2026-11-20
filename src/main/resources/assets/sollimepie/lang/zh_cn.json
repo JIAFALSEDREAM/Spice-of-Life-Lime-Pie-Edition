@@ -88,7 +88,7 @@
 	"config.sollimepie.end_decay.description": "食物距今多少餐后，多样性贡献停止继续衰减。\n必须大于或等于 startDecay；除非 queueSize 为 0（永久记录），否则不能超过 queueSize。\n修改 queueSize 后，若要保留默认行为，也需要将 endDecay 设置为与 queueSize 相同的值。",
 	"config.sollimepie.start_decay.description": "食物距今多少餐后，开始衰减其多样性贡献。\n必须小于或等于 endDecay。decayEnabled 为 false 时忽略此项。",
 	"config.sollimepie.should_forbidden_count.description": "黑名单中的食物即使不贡献任何多样性，是否仍占用饮食记录中的一个位置。",
-	"config.sollimepie.complexity_unparsed.description": "在此为单种食物定义自定义复杂度。\n食物的复杂度值就是它贡献的饮食多样性分数。\n未列出的食物使用由 defaultContribution 控制的营养值与饱和度公式。\n列表中的每一项都是定义一种食物的字符串，格式为 [registry name],[value]。\n目前不支持标签。\n例如：[\"minecraft:bread,2.5\", \"minecraft:golden_apple,8\"]。这些值是新鲜食物的完整权重；开启衰减后仍会乘以衰减倍率。请使用有限的非负数、完整物品 ID，且不要包含空格。\n未知物品或非食物物品会被跳过并记录警告。删除某项即可恢复该食物按公式计算的权重。",
+	"config.sollimepie.complexity_unparsed.description": "在此为单种食物定义自定义复杂度。\n食物的复杂度值就是它贡献的饮食多样性分数。\n未列出的食物使用由 defaultContribution 控制的营养值与饱和度公式。\n列表中的每一项都是定义一种食物的字符串，格式为 [registry name],[value]。\n目前不支持标签。\n例如：[\"minecraft:bread,2.5\", \"minecraft:golden_apple,8\"]。这些值是新鲜食物的完整权重；开启衰减后仍会乘以衰减倍率。请使用有限的非负数、完整物品 ID，且不要包含空格。\n内置兼容预设中的缺失物品会直接跳过。其他未知物品或非食物物品会被跳过并记录警告。删除某项即可恢复该食物按公式计算的权重。",
 	"config.sollimepie.is_food_tooltip_enabled.description": "设为 true 时，食物的提示信息中会显示上次食用时间，以及当前的多样性贡献。",
 	"config.sollimepie.should_show_inactive_benefits.description": "设为 true 时，食物手册除了列出已获得的增益，还会显示尚未获得的增益。"
 }

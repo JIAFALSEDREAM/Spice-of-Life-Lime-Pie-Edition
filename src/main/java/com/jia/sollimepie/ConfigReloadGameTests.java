@@ -1,13 +1,16 @@
 package com.jia.sollimepie;
 
 import com.electronwill.nightconfig.toml.TomlWriter;
+import com.jia.sollimepie.tracking.FoodInstance;
 import com.jia.sollimepie.utils.BenefitsParser;
 import com.jia.sollimepie.utils.ComplexityParser;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSource;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.LevelResource;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -102,6 +105,33 @@ public final class ConfigReloadGameTests {
         warnings.clear();
         var weights = ComplexityParser.parse(List.of("minecraft:bread,Infinity", "minecraft:bread,-1", "minecraft:bread,2.5"), warnings::add);
         helper.assertTrue(warnings.size() == 2 && weights.size() == 1 && weights.values().contains(2.5), "Food weight validation failed");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void optionalFoodPresetsKeepScoresAndCustomWarnings(GameTestHelper helper) {
+        List<String> defaults = new ArrayList<>(SOLLimePieConfig.SERVER.complexityUnparsed.getDefault());
+        List<String> warnings = new ArrayList<>();
+        var weights = ComplexityParser.parse(defaults, warnings::add);
+        helper.assertTrue(warnings.isEmpty(), "Built-in food presets warned about missing optional foods");
+        helper.assertTrue(java.util.Collections.frequency(defaults, "farmersrespite:black_tea,3") == 1,
+            "The default config must include one black tea entry");
+
+        var cakeSlice = ResourceLocation.parse("farmersdelight:cake_slice");
+        if (BuiltInRegistries.ITEM.containsKey(cakeSlice)) {
+            helper.assertTrue(Double.valueOf(4.0).equals(weights.get(new FoodInstance(BuiltInRegistries.ITEM.get(cakeSlice)))),
+                "An available compatibility food lost its preset score");
+        } else {
+            ComplexityParser.parse(List.of("farmersdelight:cake_slice,9"), warnings::add);
+            helper.assertTrue(warnings.equals(List.of("Unknown registered item: farmersdelight:cake_slice")),
+                "A custom score for a missing item was silently skipped");
+        }
+
+        warnings.clear();
+        ComplexityParser.parse(List.of("farmersrespite:black_tea,3", "farmersrespite:black_tea,3",
+            "farmersdelight:sollimepie_missing_test_item,3"), warnings::add);
+        helper.assertTrue(warnings.equals(List.of("Unknown registered item: farmersdelight:sollimepie_missing_test_item")),
+            "An older config must skip duplicate missing presets and warn about unknown custom IDs");
         helper.succeed();
     }
 
