@@ -4,6 +4,6 @@
   "compatibilityLevel": "JAVA_21",
   "package": "com.jia.sollimepie.mixin",
   "mixins": ["LivingEntityMixin", "ServerGamePacketListenerMixin"],
-  "client": ["ClientCommonPacketListenerMixin", "ClientLevelMixin"],
+  "client": ["ClientCommonPacketListenerMixin", "ClientLevelMixin", "ItemInHandRendererMixin"],
   "injectors": { "defaultRequire": 1 }
 }

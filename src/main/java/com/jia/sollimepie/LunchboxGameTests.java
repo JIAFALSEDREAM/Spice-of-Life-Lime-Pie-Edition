@@ -128,6 +128,8 @@ public final class LunchboxGameTests {
         FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 3, hand, kelp, 2, 2));
         helper.assertTrue(player.isUsingItem() && player.getUseItemRemainingTicks() == 1 && FoodContainerUse.particleFood(player).is(Items.DRIED_KELP),
             "A late confirmation discarded the accepted meal pose");
+        helper.assertTrue(FoodContainerUse.pickupProgress(player, 0.7F) == 0.0F, "A confirmed-only meal did not start the pickup animation");
+        helper.assertTrue(FoodContainerUse.pickupProgress(player, 0.8F) < 1.0F, "A late first render skipped the pickup animation");
         player.stopUsingItem();
         helper.succeed();
     }
