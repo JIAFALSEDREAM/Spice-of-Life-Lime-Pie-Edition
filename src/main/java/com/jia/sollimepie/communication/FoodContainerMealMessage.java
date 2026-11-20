@@ -9,7 +9,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record FoodContainerMealMessage(int playerId, int sequence, InteractionHand hand, ItemStack food)
+public record FoodContainerMealMessage(int playerId, int sequence, InteractionHand hand, ItemStack food, int duration, int remainingTicks)
     implements CustomPacketPayload {
     public static final Type<FoodContainerMealMessage> TYPE = new Type<>(SOLLimePie.resourceLocation("food_container_meal"));
     public static final StreamCodec<RegistryFriendlyByteBuf, FoodContainerMealMessage> STREAM_CODEC = StreamCodec.of(
@@ -18,9 +18,11 @@ public record FoodContainerMealMessage(int playerId, int sequence, InteractionHa
             buffer.writeVarInt(message.sequence);
             buffer.writeEnum(message.hand);
             ItemStack.STREAM_CODEC.encode(buffer, message.food);
+            buffer.writeVarInt(message.duration);
+            buffer.writeVarInt(message.remainingTicks);
         },
         buffer -> new FoodContainerMealMessage(buffer.readVarInt(), buffer.readVarInt(), buffer.readEnum(InteractionHand.class),
-            ItemStack.STREAM_CODEC.decode(buffer))
+            ItemStack.STREAM_CODEC.decode(buffer), buffer.readVarInt(), buffer.readVarInt())
     );
 
     @Override

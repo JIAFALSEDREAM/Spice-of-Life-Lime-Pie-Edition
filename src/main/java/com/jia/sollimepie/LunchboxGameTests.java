@@ -17,16 +17,20 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.common.CommonHooks;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.network.connection.ConnectionType;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 @PrefixGameTestTemplate(false)
 public final class LunchboxGameTests {
@@ -59,6 +63,72 @@ public final class LunchboxGameTests {
 
         player.setItemInHand(hand, new ItemStack(Items.STICK));
         helper.assertTrue(CommonHooks.onItemRightClick(player, hand) == null, "A non-container right-click was intercepted");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void mealUsesTheSelectedFoodsDuration(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var hand = InteractionHand.OFF_HAND;
+        var bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
+        var inventory = Objects.requireNonNull(FoodContainerItem.getInventory(bag));
+        var slowApple = new ItemStack(Items.APPLE);
+        var properties = Objects.requireNonNull(slowApple.get(DataComponents.FOOD));
+        slowApple.set(DataComponents.FOOD, new FoodProperties(properties.nutrition(), properties.saturation(),
+            properties.canAlwaysEat(), 3.2F, properties.usingConvertsTo(), properties.effects()));
+        player.setItemInHand(hand, bag);
+        player.getFoodData().setFoodLevel(5);
+
+        for (var food : List.of(new ItemStack(Items.DRIED_KELP), slowApple)) {
+            inventory.setStackInSlot(0, food);
+            int ticks = food.getUseDuration(player);
+            bag.use(helper.getLevel(), player, hand);
+            helper.assertTrue(player.isUsingItem() && player.getUseItemRemainingTicks() == ticks && bag.getUseDuration(player) == ticks,
+                "The container did not inherit the selected food's use duration");
+            player.releaseUsingItem();
+            helper.assertTrue(!player.isUsingItem() && bag.getUseDuration(player) == 32,
+                "Releasing use left the previous food duration active");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = SOLLimePie.MOD_ID, template = "tests/empty")
+    public static void mealConfirmationPreservesElapsedTicksAcrossInventorySync(GameTestHelper helper) {
+        var player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var hand = InteractionHand.MAIN_HAND;
+        var bag = new ItemStack(SOLLimePieItems.LUNCHBAG.get());
+        player.setItemInHand(hand, bag);
+        FoodContainerUse.rememberRequest(player, hand, bag, 1);
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 1, hand, new ItemStack(Items.BREAD), 16, 16));
+
+        Consumer<LivingEntityUseItemEvent.Start> halveDuration = event -> {
+            if (event.getEntity() == player) {
+                event.setDuration(event.getDuration() / 2);
+            }
+        };
+        NeoForge.EVENT_BUS.addListener(LivingEntityUseItemEvent.Start.class, halveDuration);
+        try {
+            player.startUsingItem(hand);
+        } finally {
+            NeoForge.EVENT_BUS.unregister(halveDuration);
+        }
+        helper.assertTrue(player.getUseItemRemainingTicks() == 16, "Preparing a use applied the speed modifier twice");
+        ((FoodContainerUse.ObservedUse) player).sollimepie$adjustUseDuration(-4);
+        player.startUsingItem(hand);
+        helper.assertTrue(player.getUseItemRemainingTicks() == 12, "Starting an active use reset the remaining duration");
+        var syncedBag = bag.copy();
+        player.setItemInHand(hand, syncedBag);
+        var kelp = new ItemStack(Items.DRIED_KELP);
+        FoodContainerUse.rememberRequest(player, hand, syncedBag, 2);
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 2, hand, kelp, 8, 8));
+        helper.assertTrue(player.getUseItemRemainingTicks() == 4 && syncedBag.getUseDuration(player) == 8,
+            "Confirmation after a same-slot sync lost elapsed ticks or the server's speed modifier");
+
+        FoodContainerUse.rememberRequest(player, hand, syncedBag, 3);
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 3, hand, kelp, 2, 2));
+        helper.assertTrue(player.isUsingItem() && player.getUseItemRemainingTicks() == 1 && FoodContainerUse.particleFood(player).is(Items.DRIED_KELP),
+            "A late confirmation discarded the accepted meal pose");
+        player.stopUsingItem();
         helper.succeed();
     }
 
@@ -271,7 +341,7 @@ public final class LunchboxGameTests {
         FoodContainerUse.rememberRequest(player, hand, bag, 10);
         FoodContainerUse.rememberRequest(player, hand, bag, 11);
         var bread = new ItemStack(Items.BREAD);
-        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 10, hand, bread));
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 10, hand, bread, 32, 32));
         helper.assertTrue(FoodContainerUse.particleFood(player).isEmpty(), "Confirmation produced particles before use started");
         player.startUsingItem(hand);
         helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.BREAD), "Repeated input discarded the first accepted request");
@@ -284,15 +354,15 @@ public final class LunchboxGameTests {
         FoodContainerUse.rememberRequest(player, hand, syncedBag, 12);
         FoodContainerUse.acknowledgeRequests(player, 11);
         player.stopUsingItem();
-        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 11, hand, bread));
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 11, hand, bread, 32, 32));
         player.startUsingItem(hand);
         helper.assertTrue(FoodContainerUse.particleFood(player).isEmpty(), "An old confirmation changed the new meal's appearance");
-        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 12, hand, new ItemStack(Items.CARROT)));
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 12, hand, new ItemStack(Items.CARROT), 32, 32));
         helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.CARROT), "A stop for the previous animation cleared the pending request");
 
         FoodContainerUse.rememberRequest(player, hand, syncedBag, 13);
         FoodContainerUse.cancelRequests(player, null);
-        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 13, hand, bread));
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 13, hand, bread, 32, 32));
         helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.CARROT), "A canceled request changed the meal appearance");
 
         player.getInventory().setItem(1, syncedBag.copy());
@@ -309,11 +379,11 @@ public final class LunchboxGameTests {
         FoodContainerUse.cancelRequests(player, hand);
         player.getInventory().selected = 1;
         player.startUsingItem(hand);
-        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 14, hand, bread));
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 14, hand, bread, 32, 32));
         helper.assertTrue(FoodContainerUse.particleFood(player).isEmpty(), "Returning to the slot restored a canceled request");
         player.stopUsingItem();
         player.startUsingItem(offHand);
-        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 15, offHand, bread));
+        FoodContainerUse.acceptAppearance(player, new FoodContainerMealMessage(player.getId(), 15, offHand, bread, 32, 32));
         helper.assertTrue(FoodContainerUse.particleFood(player).is(Items.BREAD), "Changing hotbar slots canceled an off-hand request");
         helper.succeed();
     }
@@ -327,9 +397,11 @@ public final class LunchboxGameTests {
         helper.assertTrue(helper.getLevel().addFreshEntity(eater), "Could not add the observed player");
         try {
             eater.startUsingItem(hand);
-            var message = new FoodContainerMealMessage(eater.getId(), 10, hand, new ItemStack(Items.APPLE));
+            var message = new FoodContainerMealMessage(eater.getId(), 10, hand, new ItemStack(Items.APPLE), 32, 4);
             FoodContainerUse.acceptAppearance(observer, message);
             helper.assertTrue(FoodContainerUse.particleFood(eater).is(Items.APPLE), "A newly observing player did not get the current food");
+            helper.assertTrue(eater.getUseItemRemainingTicks() == 4 && eater.getUseItem().getUseDuration(eater) == 32,
+                "An observer started the meal from its full duration instead of the remaining time");
             helper.assertTrue(FoodContainerUse.particleFood(observer).isEmpty(), "Remote food was applied to the observing player");
 
             eater.stopUsingItem();

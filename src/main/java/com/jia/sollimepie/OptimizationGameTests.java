@@ -32,6 +32,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.network.registration.ChannelAttributes;
@@ -39,6 +41,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.lang.reflect.Proxy;
 import java.util.*;
+import java.util.function.Consumer;
 
 @PrefixGameTestTemplate(false)
 public final class OptimizationGameTests {
@@ -111,6 +114,12 @@ public final class OptimizationGameTests {
         ChannelAttributes.getOrCreateAdHocChannels(connection).add(FoodContainerMealMessage.TYPE.id());
         helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
         player.setGameMode(GameType.SURVIVAL);
+        Consumer<LivingEntityUseItemEvent.Start> halveMealDuration = event -> {
+            if (event.getEntity() == player && event.getItem().getItem() instanceof FoodContainerItem) {
+                event.setDuration(event.getDuration() / 2);
+            }
+        };
+        NeoForge.EVENT_BUS.addListener(LivingEntityUseItemEvent.Start.class, halveMealDuration);
         try {
             FoodList.get(player).clearFood();
             FoodList.get(player).resetFoodsEaten();
@@ -127,8 +136,12 @@ public final class OptimizationGameTests {
                 .map(ClientboundCustomPayloadPacket::payload)
                 .filter(FoodContainerMealMessage.class::isInstance).map(FoodContainerMealMessage.class::cast).toList();
             helper.assertTrue(confirmations.size() == 1 && confirmations.getFirst().sequence() == 24
-                && confirmations.getFirst().food().is(Items.BREAD), "Use did not send exactly one confirmation for the first request");
-            for (int tick = 0; tick < bag.getUseDuration(player); tick++) {
+                && confirmations.getFirst().food().is(Items.BREAD) && confirmations.getFirst().duration() == 16
+                && confirmations.getFirst().remainingTicks() == 16,
+                "Use did not send a single confirmation for the first request with the adjusted duration");
+            helper.assertTrue(bag.getUseDuration(player) == 16 && player.getUseItemRemainingTicks() == 16,
+                "The server did not retain the adjusted duration");
+            for (int tick = 0; tick < 16; tick++) {
                 player.doTick();
             }
             helper.assertTrue(player.getFoodData().getFoodLevel() == 10, "Lunchbag did not feed the player");
@@ -137,6 +150,7 @@ public final class OptimizationGameTests {
             helper.assertTrue(Objects.requireNonNull(FoodContainerItem.getInventory(bag)).getStackInSlot(0).getCount() == 2,
                 "Consumed food did not persist");
         } finally {
+            NeoForge.EVENT_BUS.unregister(halveMealDuration);
             helper.getLevel().getServer().getPlayerList().remove(player);
             player.discard();
             channel.finishAndReleaseAll();

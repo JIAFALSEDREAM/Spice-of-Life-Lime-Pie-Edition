@@ -69,15 +69,7 @@ public class FoodContainerItem extends Item {
         if (!canEat) {
             return InteractionResultHolder.fail(stack);
         }
-        player.startUsingItem(hand);
-        if (player.isUsingItem() && player.getUseItem() == stack) {
-            ItemStack food = inventory.getStackInSlot(slot);
-            if (world.isClientSide) {
-                FoodContainerUse.predict(player, hand, stack, food);
-            } else {
-                FoodContainerUse.startServerMeal(player, hand, stack, slot, food);
-            }
-        }
+        FoodContainerUse.startMeal(player, hand, stack, slot, inventory.getStackInSlot(slot));
         return InteractionResultHolder.consume(stack);
     }
 
@@ -141,7 +133,15 @@ public class FoodContainerItem extends Item {
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity entity) { return 32; }
+    public int getUseDuration(ItemStack stack, LivingEntity entity) {
+        if (entity instanceof Player player) {
+            int duration = FoodContainerUse.useDuration(player, stack);
+            if (duration >= 0) {
+                return player.isUsingItem() ? Math.max(1, duration) : duration;
+            }
+        }
+        return 32;
+    }
 
     public static int getBestFoodSlot(ItemStackHandler handler, Player player) {
         FoodList foodList = FoodList.get(player);
