@@ -4,6 +4,7 @@ import com.jia.sollimepie.SOLLimePie;
 import com.jia.sollimepie.communication.FoodContainerMealMessage;
 import com.jia.sollimepie.tracking.CapabilityHandler;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -28,6 +29,8 @@ public final class FoodContainerUse {
     private @Nullable Appearance appearance;
     private @Nullable FoodContainerMealMessage observedAppearance;
     private int useDuration = -1;
+    private double pickupStart;
+    private float pickupTicks;
 
     public static int swapRequestSequence(Player player, int sequence) {
         var use = player.getData(CapabilityHandler.FOOD_CONTAINER_USE);
@@ -124,6 +127,7 @@ public final class FoodContainerUse {
             use.appearance = null;
             use.observedAppearance = null;
             use.useDuration = -1;
+            use.pickupTicks = 0;
         }
     }
 
@@ -179,6 +183,20 @@ public final class FoodContainerUse {
         }
         return use.observedAppearance != null && use.observedAppearance.hand() == hand
             ? use.observedAppearance.food() : ItemStack.EMPTY;
+    }
+
+    public static float pickupProgress(Player player, float partialTick) {
+        var use = player.getExistingDataOrNull(CapabilityHandler.FOOD_CONTAINER_USE);
+        if (use == null || use.appearance == null) {
+            return 1.0F;
+        }
+        if (use.pickupTicks <= 0) {
+            // Begin the pickup on the first frame that can draw the server's confirmed food.
+            use.pickupStart = player.tickCount + (double) partialTick;
+            use.pickupTicks = Math.min(4.0F, Math.max(1, player.getUseItemRemainingTicks()) * 0.25F);
+        }
+        double elapsed = player.tickCount + (double) partialTick - use.pickupStart;
+        return Mth.clamp((float) (elapsed / use.pickupTicks), 0.0F, 1.0F);
     }
 
     public static boolean hasSelectedMeal(Player player, ItemStack container) {
